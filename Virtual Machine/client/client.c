@@ -2,10 +2,13 @@
 #include <zlib.h>
 #include <stdlib.h>
 #include <dirent.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 int main(int argc, char *argv[])
 {
-	struct dirent *pEnt;
+	struct dirent *dEnt;
 	DIR *pDir;
 
 	if (argc != 3) // argc should be 3 for correct execution
@@ -23,18 +26,29 @@ int main(int argc, char *argv[])
 			exit(EXIT_FAILURE);
 		}
 
-		while ((pEnt = readdir(pDir)) != NULL)
+		while ((dEnt = readdir(pDir)) != NULL)
 		{
 
-			if (strcmp(pEnt->d_name, ".") == 0 || strcmp(pEnt->d_name, "..") == 0)
+			if (strcmp(dEnt->d_name, ".") == 0 || strcmp(dEnt->d_name, "..") == 0)
 			{
 				continue;
 			}
 			else
 			{
-				printf("[%s]\n", pEnt->d_name);
+				//If it is directory (d_type is always 0.... am i going to have to use stat(2) :o)
+				if ((dEnt->d_type == DT_DIR))
+				{
+					
+				}
+				else if (!(dEnt->d_type == DT_DIR))	//If it isnt a directory
+				{
+					printf("[%s]\n", dEnt->d_name);
+				}
+				else
+				{
+					exit(EXIT_FAILURE);
+				}
 			}
-			
 		}
 
 		closedir(pDir);
