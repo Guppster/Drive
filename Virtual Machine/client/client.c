@@ -29,9 +29,10 @@ void traverse(char* name)
 	struct stat fInfo;
 	DIR *pDir;
 	char full_path[1024];						//Allocate enough space to hold a directory path 
+	char tempname[1024];
+	char* formatedName;
 
 	getcwd(full_path, sizeof(full_path));
-	printf("[%s]", name);
 
 	//Open the directory and store a pointer to it's location
 	pDir = opendir(name);
@@ -69,18 +70,19 @@ void traverse(char* name)
 		//If it is directory
 		if (S_ISDIR(fInfo.st_mode))
 		{
-			printf("DIRECTORY");
-			printf("[%s]\n", dEnt->d_name);
-			strcat(name, "/");
-			strcat(name, dEnt->d_name);
+			strcpy(tempname, name);
+			strcat(tempname, "/");
+			strcat(tempname, dEnt->d_name);
 
 			//Enter directory and recursivly repeat process
-			traverse(name);
+			traverse(tempname);
 		}
 		else if (S_ISREG(fInfo.st_mode))	//If it is a regular file
 		{
-			printf("REGULAR FILE");
-			printf("[%s]\n", dEnt->d_name);
+			formatedName = name + 5;
+
+			printf("%s/%s\n", formatedName, dEnt->d_name);
+		
 			//Compute a CRC-32 checksum 
 		}
 
