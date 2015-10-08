@@ -4,10 +4,10 @@ LDFLAGS = -L.
 
 .PHONY : all test clean
 
-all: client.o
+all: client
 
-client.o: client.c client.h
-	$(CC) $(CFLAGS) -o $@ -c $<
+client: client.c client.h
+	$(CC) $(CFLAGS) -o $@ $<
 
 clean:
 	rm -f *.o *.a client
