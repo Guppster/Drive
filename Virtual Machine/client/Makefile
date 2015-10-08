@@ -4,6 +4,8 @@ LDFLAGS = -L.
 
 .PHONY : all test clean
 
+all: client.o
+
 client.o: client.c client.h
 	$(CC) $(CFLAGS) -o $@ -c $<
 
