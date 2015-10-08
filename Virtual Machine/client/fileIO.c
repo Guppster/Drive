@@ -59,7 +59,7 @@ void traverse(char* name, int lengthOfFoldierName)
 			formattedname = name + lengthOfFoldierName;
 			printf("%s/%s\n", formattedname, dEnt->d_name);
 		
-			//Compute a CRC-32 checksum 
+			computeChecksum(readFile(name),getSizeOfFile(name));
 		}
 	}
 
@@ -68,14 +68,73 @@ void traverse(char* name, int lengthOfFoldierName)
 
 int writeToFile(char* output)
 {
-	FILE *fp;
-	fp = fopen("output.txt", "w");
-	fprintf(fp, output);
+	FILE *fileptr;
+	fileptr = fopen("output.txt", "w");
+	fprintf(fileptr, output);
 	return 0;
 }
 
-int readFile(char* fileName)
+char* readFile(char* fileName)
 {
-	FILE *fp;
-	fp = fopen(fileName, "w");
+	FILE *fileptr;
+
+	//Open file in read binary mode
+	fileptr = fopen(fileName, "rb");
+
+	// Jump to the end of the file
+	fseek(fileptr, 0, SEEK_END);
+
+	// Get the current byte offset in the file          
+	filelen = ftell(fileptr);     
+
+	// Jump back to the beginning of the file        
+	rewind(fileptr);         
+
+	// Enough memory for file + \0
+	char* buffer = (char *)malloc((filelen+1)*sizeof(char)); 
+	
+	// Read in the entire file
+	fread(buffer, filelen, 1, fileptr); 
+	
+	// Close the file  
+	fclose(fileptr);           
+
+	return buffer;
+
+}//End of readfile method
+
+int getSizeOfFile(char* fileName)
+{
+	//Declare a file pointer
+	FILE *fileptr;
+
+	//Open file in read binary mode
+	fileptr = fopen(fileName, "rb");
+
+	//Find end of file
+	fseek(fileptr, 0L, SEEK_END);
+
+	//store postion
+	long size =  ftell(fileptr);
+
+	// Close the file  
+	fclose(fileptr); 
+
+	return size;
+}//End of getSizeOfFile method
+
+size_t read_buffer(char* buffer, size_t length, char* filename)
+{
+	//Declare a file pointer
+	FILE *fileptr;
+
+	//Open file in read binary mode
+	fileptr = fopen(fileName, "rb");
+
+	size_t temp = fread(buffer, 1, length, fileptr);
+
+	// Close the file  
+	fclose(fileptr); 
+
+	return temp;
 }

@@ -6,9 +6,10 @@ LDFLAGS = -L.
 
 all: client
 
-client: client.c client.h
-	$(CC) $(CFLAGS) -o $@ $<
+client: client.c fileIO.c checksum.c
+	$(CC) $(CFLAGS) -o client client.c -lz
 
 clean:
 	rm -f *.o *.a client
+
 

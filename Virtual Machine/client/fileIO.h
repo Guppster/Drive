@@ -5,6 +5,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <string.h>
+#include "checksum.h"
 
 void traverse(char* name, int lengthOfFoldierName);
 int writeToFile(char*);
