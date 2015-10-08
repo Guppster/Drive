@@ -12,7 +12,7 @@ int main(int argc, char *argv[])
 	struct dirent *dEnt;
 	struct stat fInfo;
 	DIR *pDir;
-	char full_path[512];						//Allocate enough space to hold a directory path
+	char full_path[1024];									//Allocate enough space to hold a directory path
 
 	if (argc != 3) // argc should be 3 for correct execution
 	{
@@ -50,7 +50,8 @@ int main(int argc, char *argv[])
 			if (lstat(full_path, &fInfo) == -1)
 			{
 				perror(dEnt->d_name);
-				exit(EXIT_FAILURE);
+				//Do we EXIT_FAILURE here or keep going? Keep going. 
+				continue;
 			}
 
 			//If it is directory
@@ -58,24 +59,24 @@ int main(int argc, char *argv[])
 			{
 				printf("DIRECTORY");
 				printf("[%s]\n", dEnt->d_name);
+
+				//Enter directory and recursivly repeat process
 			}
 			else if (S_ISREG(fInfo.st_mode))	//If it is a regular file
 			{
 				printf("REGULAR FILE");
 				printf("[%s]\n", dEnt->d_name);
+				//Compute a CRC-32 checksum 
 			}
-			else
-			{
-				exit(EXIT_FAILURE);
-			}
+
 		}
 
 		closedir(pDir);
-
-		//Scans the directory argv[1] recursively (opendir, readdir, closedir)
-			//Compute a CRC-32 checksum for each file
 
 		//Write a comma seperated list of files and their CRC-32 checksums to the file argv[2]
 	}
 	return 0;
 }
+
+
+
