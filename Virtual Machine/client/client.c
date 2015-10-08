@@ -80,5 +80,31 @@ void traverse(char* name, int lengthOfFoldierName)
 	closedir(pDir);
 }//End of traverse method
 
+int writeToFile(char* output)
+{
+	FILE *fp;
+	fp = fopen("output.txt", "w");
+	fprintf(fp, output);
+	return 0;
+}
 
+/*
+int readFile(char* fileName)
+{
+	FILE *fp;
+	fp = fopen(fileName, "w");
+}
 
+void computeChecksum()
+{
+	uLong crc = crc32(0L, Z_NULL, 0);
+
+	while (read_buffer(buffer, length) != EOF) 
+	{
+	   crc = crc32(crc, buffer, length);
+	}
+
+	if (crc != original_crc) 
+		error();
+}
+*/

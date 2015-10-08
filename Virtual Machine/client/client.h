@@ -10,3 +10,4 @@
 void traverse(char*, int);
 
 int main(int argc, char *argv[]);
+int writeToFile(char* output);
