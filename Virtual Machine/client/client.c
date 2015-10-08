@@ -1,13 +1,4 @@
-#include <stdio.h>
-#include <zlib.h>
-#include <stdlib.h>
-#include <dirent.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#include <string.h>
-
-void traverse();
+#include "client.h"
 
 int main(int argc, char *argv[])
 {
@@ -84,7 +75,6 @@ void traverse(char* name, int lengthOfFoldierName)
 		
 			//Compute a CRC-32 checksum 
 		}
-
 	}
 
 	closedir(pDir);
