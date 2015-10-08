@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include <zlib.h>
 #include <stdlib.h>
 #include <dirent.h>
 #include <sys/types.h>
@@ -7,4 +6,6 @@
 #include <unistd.h>
 #include <string.h>
 
-int main(int argc, char *argv[]);
+void traverse(char* name, int lengthOfFoldierName);
+int writeToFile(char*);
+int readFile(char*);
