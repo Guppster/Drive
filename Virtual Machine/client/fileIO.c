@@ -94,7 +94,7 @@ char* readFile(char* fileName)
 	char* buffer = (char *)malloc((filelen+1)*sizeof(char)); 
 	
 	// Read in the entire file
-	fread(buffer, filelen, 1, fileptr); 
+	fread(buffer, 1, filelen, fileptr); 
 	
 	// Close the file  
 	fclose(fileptr);           
@@ -103,7 +103,7 @@ char* readFile(char* fileName)
 
 }//End of readfile method
 
-int getSizeOfFile(char* fileName)
+long getSizeOfFile(char* fileName)
 {
 	//Declare a file pointer
 	FILE *fileptr;
@@ -123,8 +123,9 @@ int getSizeOfFile(char* fileName)
 	return size;
 }//End of getSizeOfFile method
 
-size_t read_buffer(char* buffer, size_t length, char* filename)
+size_t read_buffer(char* buffer, long length, char* filename)
 {
+
 	//Declare a file pointer
 	FILE *fileptr;
 
