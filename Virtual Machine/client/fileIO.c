@@ -58,8 +58,10 @@ void traverse(char* name, int lengthOfFoldierName)
 		{
 			formattedname = name + lengthOfFoldierName;
 			printf("%s/%s\n", formattedname, dEnt->d_name);
+
+			printf("%s", readFile(name));
 		
-			computeChecksum(readFile(name),getSizeOfFile(name));
+			//computeChecksum(readFile(name),getSizeOfFile(name));
 		}
 	}
 
@@ -70,7 +72,7 @@ int writeToFile(char* output)
 {
 	FILE *fileptr;
 	fileptr = fopen("output.txt", "w");
-	fprintf(fileptr, output);
+	fprintf(fileptr, "%s" ,output);
 	return 0;
 }
 
@@ -85,7 +87,7 @@ char* readFile(char* fileName)
 	fseek(fileptr, 0, SEEK_END);
 
 	// Get the current byte offset in the file          
-	filelen = ftell(fileptr);     
+	int filelen = ftell(fileptr);     
 
 	// Jump back to the beginning of the file        
 	rewind(fileptr);         
@@ -130,7 +132,7 @@ size_t read_buffer(char* buffer, long length, char* filename)
 	FILE *fileptr;
 
 	//Open file in read binary mode
-	fileptr = fopen(fileName, "rb");
+	fileptr = fopen(filename, "rb");
 
 	size_t temp = fread(buffer, 1, length, fileptr);
 

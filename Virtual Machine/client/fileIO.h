@@ -5,8 +5,10 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <string.h>
+#include <zlib.h>
 #include "checksum.h"
+
 
 void traverse(char* name, int lengthOfFoldierName);
 int writeToFile(char*);
-int readFile(char*);
+char* readFile(char*);
