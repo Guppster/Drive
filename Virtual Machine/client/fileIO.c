@@ -67,9 +67,9 @@ void traverse(char* name, int lengthOfFoldierName)
 			strcat(full_path, "/");
 			strcat(full_path, dEnt->d_name);
 
-			printf("Contents:\t\t%s\n", readFile(full_path));
+			printf("Contents:\t%s\n", readFile(full_path));
 		
-			computeChecksum(readFile(name),getSizeOfFile(name));
+			//computeChecksum(readFile(name),getSizeOfFile(name));
 		}
 	}
 
