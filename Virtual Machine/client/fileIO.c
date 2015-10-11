@@ -7,6 +7,7 @@ void traverse(char* name, int lengthOfFoldierName)
 	DIR *pDir;
 	char full_path[1024];						//Allocate enough space to hold a directory path 
 	char tempname[1024];						//Allocate identical space to full_path to create a copy to reformat the path for the recursive process
+	char clearname[1024];
 	char* formattedname;
 
 	getcwd(full_path, sizeof(full_path));
@@ -28,13 +29,17 @@ void traverse(char* name, int lengthOfFoldierName)
 		}
 
 		//Obtain the current working directory and store in full_path
-		getcwd(full_path, sizeof(full_path));
+		getcwd(full_path, sizeof(full_path));			//Puts "/vagrant/client" in full_path
 		strcat(full_path, "/");
 		strcat(full_path, name);
 		strcat(full_path, "/");
 
+		printf("\nFull_Path: %s\n", full_path);
+
 		//Concatinate the name of the retrieved object with the full path for use in stat()
 		strcat(full_path, dEnt->d_name);
+
+
 
 		//Obtain information about the file and check for error
 		if (lstat(full_path, &fInfo) == -1)
@@ -56,13 +61,19 @@ void traverse(char* name, int lengthOfFoldierName)
 		}
 		else if (S_ISREG(fInfo.st_mode))	//If it is a regular file
 		{
+			printf("\nFile Found! \n");
+			printf("Name:\t\t\t%s\n", name);
 			formattedname = name + lengthOfFoldierName;
-			strcat(formattedname, "/");
-			strcat(formattedname, dEnt->d_name);
-			printf("%s\n", formattedname);
+
+			strcpy(clearname, name);
+			strcat(clearname, "/");
+			strcat(clearname, dEnt->d_name);
+
+			printf("Formatted Name:\t\t%s\n", formattedname);
+			printf("Clear Name :\t\t%s\n", clearname);
 
 
-			printf("CRC32: %s\n", readFile(name));
+			printf("CRC32:\t\t%s\n", readFile(clearname));
 		
 			//computeChecksum(readFile(name),getSizeOfFile(name));
 		}
@@ -81,7 +92,7 @@ int writeToFile(char* output)
 
 char* readFile(char* filename)
 {
-	printf("filename: %s\n", filename);
+	printf("Filename:\t\t%s\n", filename);
 
 	//Open file in read binary mode
 	FILE *fileptr = fopen(filename, "rb");
