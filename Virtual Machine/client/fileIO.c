@@ -7,8 +7,7 @@ void traverse(char* name, int lengthOfFoldierName)
 	DIR *pDir;
 	char full_path[1024];						//Allocate enough space to hold a directory path 
 	char tempname[1024];						//Allocate identical space to full_path to create a copy to reformat the path for the recursive process
-	char clearname[1024];
-	char* formattedname;
+	char formattedname;
 
 	getcwd(full_path, sizeof(full_path));
 
@@ -57,13 +56,13 @@ void traverse(char* name, int lengthOfFoldierName)
 		}
 		else if (S_ISREG(fInfo.st_mode))	//If it is a regular file
 		{
-			formattedname = name + lengthOfFoldierName;
+			//formattedname = name + lengthOfFoldierName;
 
-			strcpy(clearname, name);
-			strcat(clearname, "/");
-			strcat(clearname, dEnt->d_name);
+			strcpy(full_path, name);
+			strcat(full_path, "/");
+			strcat(full_path, dEnt->d_name);
 
-			printf("CRC32:\t\t%s\n", readFile(clearname));
+			printf("CRC32:\t\t%s\n", readFile(full_path));
 		
 			//computeChecksum(readFile(name),getSizeOfFile(name));
 		}
