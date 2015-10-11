@@ -8,7 +8,6 @@
 #include <zlib.h>
 #include "checksum.h"
 
-
 void traverse(char* name, int lengthOfFoldierName);
 int writeToFile(char*);
 char* readFile(char*);

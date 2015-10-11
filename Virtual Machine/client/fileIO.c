@@ -57,9 +57,12 @@ void traverse(char* name, int lengthOfFoldierName)
 		else if (S_ISREG(fInfo.st_mode))	//If it is a regular file
 		{
 			formattedname = name + lengthOfFoldierName;
-			printf("%s/%s\n", formattedname, dEnt->d_name);
+			strcat(formattedname, "/");
+			strcat(formattedname, dEnt->d_name);
+			printf("%s\n", formattedname);
 
-			printf("%s", readFile(name));
+
+			printf("CRC32: %s\n", readFile(name));
 		
 			//computeChecksum(readFile(name),getSizeOfFile(name));
 		}
@@ -76,12 +79,12 @@ int writeToFile(char* output)
 	return 0;
 }
 
-char* readFile(char* fileName)
+char* readFile(char* filename)
 {
-	FILE *fileptr;
+	printf("filename: %s\n", filename);
 
 	//Open file in read binary mode
-	fileptr = fopen(fileName, "rb");
+	FILE *fileptr = fopen(filename, "rb");
 
 	// Jump to the end of the file
 	fseek(fileptr, 0, SEEK_END);
@@ -96,7 +99,7 @@ char* readFile(char* fileName)
 	char* buffer = (char *)malloc((filelen+1)*sizeof(char)); 
 	
 	// Read in the entire file
-	fread(buffer, 1, filelen, fileptr); 
+	fread(buffer, filelen, 1, fileptr); 
 	
 	// Close the file  
 	fclose(fileptr);           
