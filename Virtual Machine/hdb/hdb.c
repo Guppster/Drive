@@ -103,24 +103,29 @@ hdb_record* hdb_user_files(hdb_connection* con, const char* username)
 	hdb_record *head = NULL;
 	hdb_record *temp;
 
+	//Check for errors (no connection / invalid username)
 	if (con == NULL || username == NULL || !hdb_user_exists(con, username))
 		return NULL;
 
+	//Connect to the redis server and run the command to get a list of all keys and values
 	reply = redisCommand((redisContext*)con, "HGETALL %s", username);
 
 	if (reply->type == REDIS_REPLY_ARRAY) 
 	{
 		for (int j = 0; j < reply->elements; j+=2)
 		{
-			temp = (hdb_record*)malloc(sizeof(hdb_record));		//allocate space for hdb_record 
+			//Allocate space for hdb_record 
+			temp = (hdb_record*)malloc(sizeof(hdb_record));		
 
-			//This isnt allowed because temp->username is type char* and username is type const char*...... but this is required soo?
-			//temp->username = username;
-			temp->username = (char*)malloc((strlen(username + 1) * sizeof(char)));
+			//Allocate space for fields of hdb_record
+			temp->username = (char*)malloc((strlen(username) + 1) * sizeof(char));
+			temp->filename = (char*)malloc((strlen(reply->element[j]->str) + 1) * sizeof(char));
+			temp->checksum = (char*)malloc((strlen(reply->element[j + 1]->str) + 1) * sizeof(char));
+
+			//Populate fields with data
 			strcpy(temp->username, username);
-
-			temp->filename = reply->element[j]->str;
-			temp->checksum = reply->element[j+1]->str;
+			strcpy(temp->filename, reply->element[j]->str);
+			strcpy(temp->checksum, reply->element[j+1]->str);
 
 			temp->next = head;
 			head = temp;
@@ -141,6 +146,10 @@ void hdb_free_result(hdb_record* record)
 	{
 		temp = node;
 		node = node->next;
+
+		free(temp->username);
+		free(temp->filename);
+		free(temp->checksum);
 		free(temp);
 	}
 	
