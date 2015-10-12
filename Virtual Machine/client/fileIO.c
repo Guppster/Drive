@@ -66,14 +66,14 @@ void traverse(char* name, int lengthOfFoldierName)
 			strcat(full_path, "/");
 			strcat(full_path, dEnt->d_name);
 		
-			writeToFile(formattedname, computeChecksum(readFile(full_path), getSizeOfFile(full_path)));
+			writeLineToFile(formattedname, computeChecksum(readFile(full_path), getSizeOfFile(full_path)));
 		}
 	}
 
 	closedir(pDir);
 }//End of traverse method
 
-void writeToFile(char* fileName, uLong checksum)
+void writeLineToFile(char* fileName, uLong checksum)
 {
 	FILE *fileptr;
 	fileptr = fopen("files.txt", "ab");
