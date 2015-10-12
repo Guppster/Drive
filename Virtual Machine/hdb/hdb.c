@@ -44,76 +44,118 @@ void hdb_disconnect(hdb_connection* con)
 /* Store a file record in the Hooli database. */
 void hdb_store_file(hdb_connection* con, hdb_record* record) 
 {
-	redisCommand((redisContext*)con, "HSET %s %s %s", record->username, record->filename, record->checksum);
+	redisReply *reply;	//An object used to store the reply from Redis
+
+	//Uses the HSET Command with 3 parameters retrieved from the record to set a record on the server
+	reply = redisCommand((redisContext*)con, "HSET %s %s %s", record->username, record->filename, record->checksum);
+
+	//Free the reply object
+	freeReplyObject(reply);
 }//End of hdb_store_file method
 
 /* Remove a file record from the Hooli database. */
 int hdb_remove_file(hdb_connection* con, const char* username, const char* filename) 
 {
-	redisReply *reply;
+	redisReply *reply;	//An object used to store the reply from Redis
 
+	//Uses the HDEL Command to delete the specified record
 	reply = redisCommand((redisContext*)con, "HDEL %s %s", username, filename);
 
-	return reply->integer;
+	//Create a temp object to store the reply so we can free reply before returning
+	int temp = reply->integer;
+
+	//Free the reply object
+	freeReplyObject(reply);
+
+	return temp;
 }//End of hdb_remove_file method
 
 /* If the specified file is found in the Hooli database, return its checksum. Otherwise, return NULL.*/
 char* hdb_file_checksum(hdb_connection* con, const char* username, const char* filename) 
 {
-	redisReply *reply;
-
+	redisReply *reply;	//An object used to store the reply from Redis
+	
+	//Uses the HEXISTS Command to check for an existing record
 	reply = redisCommand((redisContext*)con, "HEXISTS %s %s", username, filename);
 
+	//If it doesnt exist exit
 	if (reply->integer == 0)
 	{
+		//Free the reply object
+		freeReplyObject(reply);
 		return NULL;
 	}
 
+	//Free the reply object
+	freeReplyObject(reply);
+
+	//If it exists return the checksum using HGET
 	reply = redisCommand((redisContext*)con, "HGET %s %s", username, filename);
 
-	return reply->str;
+	//Create a temp object to store the reply so we can free reply before returning
+	char* temp = (char*)malloc((strlen(reply->str) + 1) * sizeof(char));
+	strcpy(temp, reply->str);
+
+	//Free the reply object
+	freeReplyObject(reply);
+
+	return temp;
 }//End of hdb_file_checksum method
 
 /* Get the number of files stored in the Hooli database for the specified user. */
 int hdb_file_count(hdb_connection* con, const char* username) 
 {
-	redisReply *reply;
+	redisReply *reply;	//An object used to store the reply from Redis
 	
 	reply = redisCommand((redisContext*)con, "HLEN %s", username);
 
-	return reply->integer;
+	//Create a temp object to store the reply so we can free reply before returning
+	int temp = reply->integer;
 
+	//Free the reply object
+	freeReplyObject(reply);
+
+	return temp;
 }//End of hdb_file_count method
 
 /* Return a Boolean value indicating whether or not the specified user exists in the Hooli database */
 bool hdb_user_exists(hdb_connection* con, const char* username) 
 {
-	redisReply *reply;
+	redisReply *reply;	//An object used to store the reply from Redis
 
 	reply = redisCommand((redisContext*)con, "EXISTS %s", username);
 
 	if (reply->integer == 1)
+	{
+		freeReplyObject(reply);
 		return true;
-	return false;
+	}
 
+	freeReplyObject(reply);
+	return false;
 }//End of hdb_user_exists method
 
 /* Return a Boolean value indicating whether or not the specified file exists in the Hooli database */
 bool hdb_file_exists(hdb_connection* con, const char* username, const char* filename) 
 {
-	redisReply *reply;
+	redisReply *reply;	//An object used to store the reply from Redis
 
 	reply = redisCommand((redisContext*)con, "HEXISTS %s %s", username, filename);
 
 	if (reply->integer == 1)
+	{
+		freeReplyObject(reply);
 		return true;
+	}
+
+	freeReplyObject(reply);
 	return false;
-}
+}//End of hdb_file_exists method
 
 /* Return a linked list of all of the specified user's file records stored in the Hooli database */
 hdb_record* hdb_user_files(hdb_connection* con, const char* username)
 {
-	redisReply *reply;
+	redisReply *reply;	//An object used to store the reply from Redis
 	hdb_record *head = NULL;
 	hdb_record *temp;
 
@@ -168,16 +210,22 @@ void hdb_free_result(hdb_record* record)
 		free(temp->checksum);
 		free(temp);
 	}
-	
+
 	record = NULL;
 }//End of hdb_free_result method
 
 /* Delete the specifid user and all of his/her file records from the Hooli database. */
 int hdb_delete_user(hdb_connection* con, const char* username) 
 {
-	redisReply *reply;
+	redisReply *reply;	//An object used to store the reply from Redis
 	
 	reply = redisCommand((redisContext*)con, "DEL %s", username);
 
-	return reply->integer;
+	//Create a temp object to store the reply so we can free reply before returning
+	int temp = reply->integer;
+
+	//Free the reply object
+	freeReplyObject(reply);
+
+	return temp;
 }//End of hdb_delete_user method
