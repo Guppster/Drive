@@ -132,20 +132,3 @@ long getSizeOfFile(char* fileName)
 
 	return size;
 }//End of getSizeOfFile method
-
-size_t read_buffer(char* buffer, long length, char* filename)
-{
-
-	//Declare a file pointer
-	FILE *fileptr;
-
-	//Open file in read binary mode
-	fileptr = fopen(filename, "rb");
-
-	size_t temp = fread(buffer, 1, length, fileptr);
-
-	// Close the file  
-	fclose(fileptr); 
-
-	return temp;
-}
