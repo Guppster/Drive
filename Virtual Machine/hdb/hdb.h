@@ -45,7 +45,7 @@ bool hdb_file_exists(hdb_connection* con, const char* username, const char* file
 
 // Return a linked list of all of the specified user's file records stored in the
 // Hooli database
-hdb_record* hdb_user_files(hdb_connection* con, char* username);
+hdb_record* hdb_user_files(hdb_connection* con, const char* username);
 
 // Free the linked list returned by hdb_user_files()
 void hdb_free_result(hdb_record* record);

@@ -1,5 +1,6 @@
 #include "hdb.h"
 #include <stdlib.h>
+#include <string.h>
 
 hdb_connection* hdb_connect(const char* server) 
 {
@@ -30,6 +31,7 @@ void hdb_disconnect(hdb_connection* con)
 {
 	/* Disconnects and frees the context */
 	redisFree((redisContext*)con);
+
 }//End of hdb_disconnect method
 
 void hdb_store_file(hdb_connection* con, hdb_record* record) 
@@ -40,7 +42,6 @@ void hdb_store_file(hdb_connection* con, hdb_record* record)
 int hdb_remove_file(hdb_connection* con, const char* username, const char* filename) 
 {
 	redisReply *reply;
-
 
 	reply = redisCommand((redisContext*)con, "HDEL %s %s", username, filename);
 
@@ -96,11 +97,14 @@ bool hdb_file_exists(hdb_connection* con, const char* username, const char* file
 	return false;
 }
 
-hdb_record* hdb_user_files(hdb_connection* con, char* username) 
+hdb_record* hdb_user_files(hdb_connection* con, const char* username)
 {
 	redisReply *reply;
 	hdb_record *head = NULL;
 	hdb_record *temp;
+
+	if (con == NULL || username == NULL || !hdb_user_exists(con, username))
+		return NULL;
 
 	reply = redisCommand((redisContext*)con, "HGETALL %s", username);
 
@@ -109,8 +113,11 @@ hdb_record* hdb_user_files(hdb_connection* con, char* username)
 		for (int j = 0; j < reply->elements; j+=2)
 		{
 			temp = (hdb_record*)malloc(sizeof(hdb_record));		//allocate space for hdb_record 
-			temp->username = username;
-			//char = const char* (assigning const char to char not allowed)
+
+			//This isnt allowed because temp->username is type char* and username is type const char*...... but this is required soo?
+			//temp->username = username;
+			temp->username = (char*)malloc((strlen(username + 1) * sizeof(char)));
+			strcpy(temp->username, username);
 
 			temp->filename = reply->element[j]->str;
 			temp->checksum = reply->element[j+1]->str;
@@ -120,6 +127,7 @@ hdb_record* hdb_user_files(hdb_connection* con, char* username)
 		}
 	}
 
+	freeReplyObject(reply);
 	return head;
 }//End of hdb_user_files method
 
@@ -146,4 +154,4 @@ int hdb_delete_user(hdb_connection* con, const char* username)
 	reply = redisCommand((redisContext*)con, "DEL %s", username);
 
 	return reply->integer;
-}
+}//End of hdb_delete_user method
