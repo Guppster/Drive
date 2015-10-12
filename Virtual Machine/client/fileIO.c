@@ -61,25 +61,23 @@ void traverse(char* name, int lengthOfFoldierName)
 			formattedname = formattedname + lengthOfFoldierName;
 			strcat(formattedname, "/");
 			strcat(formattedname, dEnt->d_name);
-			printf("\nFilename:\t%s\n", formattedname);
 
 			strcpy(full_path, name);
 			strcat(full_path, "/");
 			strcat(full_path, dEnt->d_name);
 		
-			printf("CRC:\t\t%lu\n",computeChecksum(readFile(full_path),getSizeOfFile(full_path)));
+			writeToFile(formattedname, computeChecksum(readFile(full_path), getSizeOfFile(full_path)));
 		}
 	}
 
 	closedir(pDir);
 }//End of traverse method
 
-int writeToFile(char* output)
+void writeToFile(char* fileName, uLong checksum)
 {
 	FILE *fileptr;
-	fileptr = fopen("output.txt", "w");
-	fprintf(fileptr, "%s" ,output);
-	return 0;
+	fileptr = fopen("files.txt", "w");
+	fprintf(fileptr, "%s,%lu" , fileName, checksum);
 }
 
 char* readFile(char* filename)

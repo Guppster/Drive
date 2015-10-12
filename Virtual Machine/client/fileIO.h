@@ -9,6 +9,6 @@
 #include "checksum.h"
 
 void traverse(char* , int );
-int writeToFile(char*);
+void writeToFile(char*, uLong);
 char* readFile(char*);
 long getSizeOfFile(char*);
