@@ -41,6 +41,7 @@ int hdb_remove_file(hdb_connection* con, const char* username, const char* filen
 {
 	redisReply *reply;
 
+
 	reply = redisCommand((redisContext*)con, "HDEL %s %s", username, filename);
 
 	return reply->integer;
@@ -57,7 +58,7 @@ char* hdb_file_checksum(hdb_connection* con, const char* username, const char* f
 		return NULL;
 	}
 
-	reply = redisCommand((redisContext*)con, "GET %s %s", username, filename);
+	reply = redisCommand((redisContext*)con, "HGET %s %s", username, filename);
 
 	return reply->str;
 }//End of hdb_file_checksum method
@@ -95,19 +96,25 @@ bool hdb_file_exists(hdb_connection* con, const char* username, const char* file
 	return false;
 }
 
-hdb_record* hdb_user_files(hdb_connection* con, const char* username) 
+hdb_record* hdb_user_files(hdb_connection* con, char* username) 
 {
 	redisReply *reply;
 	hdb_record *head = NULL;
-	hdb_record *temp = (hdb_record*)malloc(sizeof(hdb_record));		//allocate space for hdb_record 
+	hdb_record *temp;
 
 	reply = redisCommand((redisContext*)con, "HGETALL %s", username);
 
 	if (reply->type == REDIS_REPLY_ARRAY) 
 	{
-		for (int j = 0; j < reply->elements; j++)
+		for (int j = 0; j < reply->elements; j+=2)
 		{
+			temp = (hdb_record*)malloc(sizeof(hdb_record));		//allocate space for hdb_record 
+			temp->username = username;
+			//char = const char* (assigning const char to char not allowed)
+
 			temp->filename = reply->element[j]->str;
+			temp->checksum = reply->element[j+1]->str;
+
 			temp->next = head;
 			head = temp;
 		}
