@@ -78,36 +78,42 @@ bool hdb_user_exists(hdb_connection* con, const char* username)
 
 	reply = redisCommand((redisContext*)con, "EXISTS %s", username);
 
-	switch (reply->integer)
-	{
-	case 1: 
-		freeReplyObject(reply);
+	if (reply->integer == 1)
 		return true;
-		break;
-	case 2:
-		freeReplyObject(reply);
-		return false;
-		break;
-	}
+	return false;
 
 }//End of hdb_user_exists method
 
-bool hdb_file_exists(hdb_connection* con, const char* username, const char* filename) {
-  // Return a Boolean value indicating whether or not the file exists in
-  // the Redis server.
+bool hdb_file_exists(hdb_connection* con, const char* username, const char* filename) 
+{
+	redisReply *reply;
 
-  return false; // Remove me
+	reply = redisCommand((redisContext*)con, "HEXISTS %s %s", username, filename);
+
+	if (reply->integer == 1)
+		return true;
+	return false;
 }
 
-hdb_record* hdb_user_files(hdb_connection* con, const char* username) {
-  // Return a linked list of all the user's file records from the Redis
-  // server.  See the hdb_record struct in hdb.h  -- notice that it 
-  // already has a pointer 'next', allowing you to set up a linked list
-  // quite easily.
-  //
-  // If the user has no files stored in the server, return NULL.
+hdb_record* hdb_user_files(hdb_connection* con, const char* username) 
+{
+	redisReply *reply;
+	hdb_record *head = NULL;
+	hdb_record *temp = (hdb_record*)malloc(sizeof(hdb_record));		//allocate space for hdb_record 
 
-  return NULL; // Remove me
+	reply = redisCommand((redisContext*)con, "HGETALL %s", username);
+
+	if (reply->type == REDIS_REPLY_ARRAY) 
+	{
+		for (int j = 0; j < reply->elements; j++)
+		{
+			temp->filename = reply->element[j]->str;
+			temp->next = head;
+			head = temp;
+		}
+	}
+
+	return head;
 }
 
 void hdb_free_result(hdb_record* record) {
