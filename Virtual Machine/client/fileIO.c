@@ -69,7 +69,7 @@ void traverse(char* name, int lengthOfFoldierName)
 
 			printf("Contents:\t%s\n", readFile(full_path));
 		
-			//computeChecksum(readFile(name),getSizeOfFile(name));
+			printf("CRC:\t\t%lu\n",computeChecksum(readFile(full_path),getSizeOfFile(full_path)));
 		}
 	}
 
@@ -108,6 +108,8 @@ char* readFile(char* filename)
 	fclose(fileptr);           
 
 	return buffer;
+
+	free(buffer);
 
 }//End of readfile method
 
