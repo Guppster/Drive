@@ -24,61 +24,73 @@ hdb_connection* hdb_connect(const char* server)
 	}
 
 	return *(hdb_connection**)&c;
-}
+}//End of hdb_connect method
 
 void hdb_disconnect(hdb_connection* con) 
 {
 	/* Disconnects and frees the context */
 	redisFree((redisContext*)con);
-}
+}//End of hdb_disconnect method
 
 void hdb_store_file(hdb_connection* con, hdb_record* record) 
 {
-	redisReply *reply;
-
-	reply = redisCommand((redisContext*)con, "HSET %s %s %s", record->username, record->filename, record->checksum);
-
-	freeReplyObject(reply);
-}
+	redisCommand((redisContext*)con, "HSET %s %s %s", record->username, record->filename, record->checksum);
+}//End of hdb_store_file method
 
 int hdb_remove_file(hdb_connection* con, const char* username, const char* filename) 
 {
 	redisReply *reply;
 
-	reply = redisCommand((redisContext*)con, "HDEL %s %s ", username, filename);
+	reply = redisCommand((redisContext*)con, "HDEL %s %s", username, filename);
 
-	return (int)reply;
-}
+	return reply->integer;
+}//End of hdb_remove_file method
 
 char* hdb_file_checksum(hdb_connection* con, const char* username, const char* filename) 
 {
 	redisReply *reply;
 
-	reply = redisCommand((redisContext*)con, "HEXISTS %s %s ", username, filename);
+	reply = redisCommand((redisContext*)con, "HEXISTS %s %s", username, filename);
 
 	if (reply->integer == 0)
 	{
 		return NULL;
 	}
 
-	reply = redisCommand((redisContext*)con, "GET %s %s ", username, filename);
+	reply = redisCommand((redisContext*)con, "GET %s %s", username, filename);
 
 	return reply->str;
+}//End of hdb_file_checksum method
 
-}
+int hdb_file_count(hdb_connection* con, const char* username) 
+{
+	redisReply *reply;
+	
+	reply = redisCommand((redisContext*)con, "HLEN %s", username);
 
-int hdb_file_count(hdb_connection* con, const char* username) {
-  // Return a count of the user's files stored in the Redis server.
+	return reply->integer;
 
-  return -99; // Remove me
-}
+}//End of hdb_file_count method
 
-bool hdb_user_exists(hdb_connection* con, const char* username) {
-  // Return a Boolean value indicating whether or not the user exists in
-  // the Redis server (i.e. whether or not he/she has files stored).
+bool hdb_user_exists(hdb_connection* con, const char* username) 
+{
+	redisReply *reply;
 
-  return false; // Remove me
-}
+	reply = redisCommand((redisContext*)con, "EXISTS %s", username);
+
+	switch (reply->integer)
+	{
+	case 1: 
+		freeReplyObject(reply);
+		return true;
+		break;
+	case 2:
+		freeReplyObject(reply);
+		return false;
+		break;
+	}
+
+}//End of hdb_user_exists method
 
 bool hdb_file_exists(hdb_connection* con, const char* username, const char* filename) {
   // Return a Boolean value indicating whether or not the file exists in
