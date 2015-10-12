@@ -4,7 +4,6 @@
 hdb_connection* hdb_connect(const char* server) 
 {
 	redisContext *c;
-	redisReply *reply;
 	int port = 6379;
 	struct timeval timeout = { 1, 500000 }; // 1.5 seconds
 
@@ -27,33 +26,45 @@ hdb_connection* hdb_connect(const char* server)
 	return *(hdb_connection**)&c;
 }
 
-void hdb_disconnect(hdb_connection* con) {
-  // "Disconnect" from the Redis server (i.e. free the Redis context)
-  // See https://github.com/redis/hiredis/blob/master/examples/example.c
+void hdb_disconnect(hdb_connection* con) 
+{
+	/* Disconnects and frees the context */
+	redisFree((redisContext*)con);
 }
 
-void hdb_store_file(hdb_connection* con, hdb_record* record) {
-  // Store the specified record in the Redis server.  There are many ways to
-  // do this with Redis.  Whichever way you choose, the checksum should be 
-  // associated with the file, and the file should be associated with the user.
-  //
-  // Hint: look up the HSET command. 
-  //
-  // See https://github.com/redis/hiredis/blob/master/examples/example.c for
-  // an example of how to execute it on the Redis server.
+void hdb_store_file(hdb_connection* con, hdb_record* record) 
+{
+	redisReply *reply;
+
+	reply = redisCommand((redisContext*)con, "HSET %s %s %s", record->username, record->filename, record->checksum);
+
+	freeReplyObject(reply);
 }
 
-int hdb_remove_file(hdb_connection* con, const char* username, const char* filename) {
-  // Remove the specified file record from the Redis server.
+int hdb_remove_file(hdb_connection* con, const char* username, const char* filename) 
+{
+	redisReply *reply;
 
-  return -99; // Remove me
+	reply = redisCommand((redisContext*)con, "HDEL %s %s ", username, filename);
+
+	return (int)reply;
 }
 
-char* hdb_file_checksum(hdb_connection* con, const char* username, const char* filename) {
-  // If the specified file exists in the Redis server, return its checksum.
-  // Otherwise, return NULL.
+char* hdb_file_checksum(hdb_connection* con, const char* username, const char* filename) 
+{
+	redisReply *reply;
 
-  return "REMOVE ME";
+	reply = redisCommand((redisContext*)con, "HEXISTS %s %s ", username, filename);
+
+	if (reply->integer == 0)
+	{
+		return NULL;
+	}
+
+	reply = redisCommand((redisContext*)con, "GET %s %s ", username, filename);
+
+	return reply->str;
+
 }
 
 int hdb_file_count(hdb_connection* con, const char* username) {

@@ -2,7 +2,7 @@
 #define HDB_H
 
 #include <stdbool.h>
-#include <hiredis.h>
+#include <hiredis/hiredis.h>
 
 // Connection to the Hooli database
 typedef void* hdb_connection;
