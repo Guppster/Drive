@@ -10,5 +10,6 @@
 
 void traverse(char* , int );
 void writeLineToFile(char*, uLong);
+void cleanFilesCache();
 char* readFile(char*);
 long getSizeOfFile(char*);

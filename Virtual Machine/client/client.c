@@ -8,6 +8,7 @@ int main(int argc, char *argv[])
 	}
 	else
 	{
+		cleanFilesCache();
 		traverse(argv[1], strlen(argv[1]));
 		//Write a comma seperated list of files and their CRC-32 checksums to the file argv[2]
 	}

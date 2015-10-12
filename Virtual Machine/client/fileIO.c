@@ -73,14 +73,24 @@ void traverse(char* name, int lengthOfFoldierName)
 	closedir(pDir);
 }//End of traverse method
 
+//Formats and writes one line to the files.txt file. 
 void writeLineToFile(char* fileName, uLong checksum)
 {
 	FILE *fileptr;
 	fileptr = fopen("files.txt", "ab");
-	fprintf(fileptr, "%s,%lu\n" , fileName, checksum);
+	fprintf(fileptr, "%s,%lu\n", fileName, checksum);
 	fclose(fileptr);
-}
+}//End of writeLineToFile method
 
+//Empties the files.txt file
+void cleanFilesCache()
+{
+	FILE *fileptr;
+	fileptr = fopen("files.txt", "w");
+	fclose(fileptr);
+}//End of cleanFilesCache method
+
+//Reads and returns the contents of the file specified in the parameter
 char* readFile(char* filename)
 {
 	//Open file in read binary mode
@@ -110,6 +120,7 @@ char* readFile(char* filename)
 
 }//End of readfile method
 
+//Returns the size of the file specified in the parameter
 long getSizeOfFile(char* fileName)
 {
 	//Declare a file pointer
