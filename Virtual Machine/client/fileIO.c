@@ -76,8 +76,9 @@ void traverse(char* name, int lengthOfFoldierName)
 void writeToFile(char* fileName, uLong checksum)
 {
 	FILE *fileptr;
-	fileptr = fopen("files.txt", "w");
-	fprintf(fileptr, "%s,%lu" , fileName, checksum);
+	fileptr = fopen("files.txt", "ab");
+	fprintf(fileptr, "%s,%lu\n" , fileName, checksum);
+	fclose(fileptr);
 }
 
 char* readFile(char* filename)
