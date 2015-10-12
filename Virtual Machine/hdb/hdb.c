@@ -122,7 +122,7 @@ void hdb_free_result(hdb_record* record)
 	hdb_record *node = record;
 	hdb_record *temp;
 
-	while (node != null)
+	while (node != NULL)
 	{
 		temp = node;
 		node = node->next;
@@ -132,8 +132,11 @@ void hdb_free_result(hdb_record* record)
 	record = NULL;
 }//End of hdb_free_result method
 
-int hdb_delete_user(hdb_connection* con, const char* username) {
-  // Delete the user and all of his/her file records from the Redis server.
+int hdb_delete_user(hdb_connection* con, const char* username) 
+{
+	redisReply *reply;
+	
+	reply = redisCommand((redisContext*)con, "DEL %s", username);
 
-  return -99; // Remove me
+	return reply->integer;
 }
