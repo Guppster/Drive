@@ -1,28 +1,30 @@
 #include "hdb.h"
 #include <stdlib.h>
 
-hdb_connection* hdb_connect(const char* server) {
-  // Connect to the Redis server.  
-  // See https://github.com/redis/hiredis/blob/master/examples/example.c
-  //
-  // Cast the redisContext to an hdb_connection.
-  // See the definition of hdb_connection in hdb.h -- notice that it's
-  // just a typedef of void* (i.e. an alias of void*).
-  //
-  // Why are we doing this?  To hide our implementation details from
-  // any users of the library.  We want to be able to change our 
-  // implementation at any time without affecting external code.
-  // We don't want external users of the code to know we're using
-  // Redis, so that, if we decided to switch to another data store
-  // in the future, we could make the change internally, and no
-  // external code would break.
-  //
-  // To avoid a compiler warning when casting the redisContext to
-  // an hdb_connection, you may find the following line helpful
-  // (don't be scared):
-  // return *(hdb_connection**)&context;
+hdb_connection* hdb_connect(const char* server) 
+{
+	redisContext *c;
+	redisReply *reply;
+	int port = 6379;
+	struct timeval timeout = { 1, 500000 }; // 1.5 seconds
 
-  return NULL; // Remove me
+	c = redisConnectWithTimeout(server, port, timeout);
+
+	if (c == NULL || c->err) 
+	{
+		if (c) 
+		{
+			printf("Connection error: %s\n", c->errstr);
+			redisFree(c);
+		}
+		else 
+		{
+			printf("Connection error: can't allocate redis context\n");
+		}
+		exit(1);
+	}
+
+	return *(hdb_connection**)&c;
 }
 
 void hdb_disconnect(hdb_connection* con) {
