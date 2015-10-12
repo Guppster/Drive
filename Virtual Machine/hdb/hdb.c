@@ -114,11 +114,23 @@ hdb_record* hdb_user_files(hdb_connection* con, const char* username)
 	}
 
 	return head;
-}
+}//End of hdb_user_files method
 
-void hdb_free_result(hdb_record* record) {
-  // Free up the memory in a linked list allocated by hdb_user_files().
-}
+// Free up the memory in a linked list allocated by hdb_user_files().
+void hdb_free_result(hdb_record* record) 
+{
+	hdb_record *node = record;
+	hdb_record *temp;
+
+	while (node != null)
+	{
+		temp = node;
+		node = node->next;
+		free(temp);
+	}
+	
+	record = NULL;
+}//End of hdb_free_result method
 
 int hdb_delete_user(hdb_connection* con, const char* username) {
   // Delete the user and all of his/her file records from the Redis server.
