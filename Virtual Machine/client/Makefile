@@ -11,5 +11,3 @@ client: client.c fileIO.c checksum.c
 
 clean:
 	rm -f *.o *.a client
-
-

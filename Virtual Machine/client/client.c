@@ -1,6 +1,6 @@
 /*
 Author: Gurpreet Singh
-Description:
+Description: This is the main file, it operates fileIO.c and Checksum.c to achieve the final result of a test file containing names and CRCs
 */
 
 #include "fileIO.h"

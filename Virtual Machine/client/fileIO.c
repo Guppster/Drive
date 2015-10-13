@@ -1,6 +1,6 @@
 /*
 Author: Gurpreet Singh
-Description:
+Description: This file is responsible for all tasks involving file input and output. Including traversing directories, writting to the final file, reading in buffers for each file. and cleaning up duplicate files.
 */
 
 #include "fileIO.h"

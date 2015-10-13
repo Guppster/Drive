@@ -1,6 +1,6 @@
 /*
 Author: Gurpreet Singh
-Description:
+Description: This is the header file containing definitions for the fileIO.c file
 */
 
 #include <stdio.h>

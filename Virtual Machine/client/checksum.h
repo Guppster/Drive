@@ -1,6 +1,6 @@
 /*
 Author: Gurpreet Singh
-Description:
+Description: This is the header file containing definations for the checksum.c file
 */
 
 #include <zlib.h>
