@@ -18,7 +18,7 @@ void writeLineToFile(char*, uLong, char*);
 void cleanFilesCache(char*);
 
 //Reads in the contents of the file
-char* readFile(char*);
+Bytef* readFile(char*);
 
 //Returns the length of the file
 long getSizeOfFile(char*);

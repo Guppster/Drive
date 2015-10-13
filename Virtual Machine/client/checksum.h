@@ -1,4 +1,4 @@
 #include <zlib.h>
 
-uLong computeChecksum(char*, long);
+uLong computeChecksum(const Bytef*, long);
 char* readBuffer(char*, int);

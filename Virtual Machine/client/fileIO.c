@@ -47,6 +47,7 @@ void traverse(char* name, int lengthOfFoldierName, char* outputname)
 		//If it is directory
 		if (S_ISDIR(fInfo.st_mode))
 		{
+			//Concatingate the name of the file on to the end of a tempstring
 			strcpy(tempname, name);
 			strcat(tempname, "/");
 			strcat(tempname, dEnt->d_name);
@@ -56,16 +57,22 @@ void traverse(char* name, int lengthOfFoldierName, char* outputname)
 		}
 		else if (S_ISREG(fInfo.st_mode))	//If it is a regular file
 		{
+			//Copy the name to a temp variable that displays name in the correct format
 			strcpy(formattedname, name);
 
+			//Skip over the main directory's name 
 			formattedname = formattedname + lengthOfFoldierName;
+
+			//Concatinate the filename at the end
 			strcat(formattedname, "/");
 			strcat(formattedname, dEnt->d_name);
 
+			//Concatinate the filename onto the end of another temp variable this time keeping the main directory in the string for reading purposes
 			strcpy(full_path, name);
 			strcat(full_path, "/");
 			strcat(full_path, dEnt->d_name);
 		
+			//Write the final entry to file with the name and checksum
 			writeLineToFile(formattedname, computeChecksum(readFile(full_path), getSizeOfFile(full_path)), outputname);
 		}
 	}
@@ -86,13 +93,14 @@ void writeLineToFile(char* fileName, uLong checksum, char* outputname)
 //Empties the files.txt file
 void cleanFilesCache(char* outputname)
 {
+	//Opens the file in write mode which overwrites any contents and then closes the file
 	FILE *fileptr;
 	fileptr = fopen(outputname, "w");
 	fclose(fileptr);
 }//End of cleanFilesCache method
 
 //Reads and returns the contents of the file specified in the parameter
-char* readFile(char* filename)
+Bytef* readFile(char* filename)
 {
 	//Open file in read binary mode
 	FILE *fileptr = fopen(filename, "rb");
@@ -115,8 +123,9 @@ char* readFile(char* filename)
 	// Close the file  
 	fclose(fileptr);           
 
-	return buffer;
+	return (Bytef*)buffer;
 
+	//Free the memory
 	free(buffer);
 
 }//End of readfile method

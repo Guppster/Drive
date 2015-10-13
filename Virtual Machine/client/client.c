@@ -8,10 +8,12 @@ int main(int argc, char *argv[])
 	}
 	else
 	{
+		//Delete the existing files.txt if it exists
 		cleanFilesCache(argv[2]);
+
+		//Write a comma seperated list of files in argv[1] and their CRC-32 checksums to the file argv[2]
 		traverse(argv[1], strlen(argv[1]), argv[2]);
-		//Write a comma seperated list of files and their CRC-32 checksums to the file argv[2]
 	}
 	return 0;
 
-}
+}//End of main method
