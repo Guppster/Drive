@@ -211,6 +211,7 @@ void hdb_free_result(hdb_record* record)
 		temp = node;
 		node = node->next;
 
+		//Free everything for this node
 		free(temp->username);
 		free(temp->filename);
 		free(temp->checksum);
