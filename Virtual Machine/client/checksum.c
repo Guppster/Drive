@@ -1,3 +1,8 @@
+/*
+Author: Gurpreet Singh
+Description:
+*/
+
 #include "checksum.h"
 
 uLong computeChecksum(const Bytef* buffer, long length)

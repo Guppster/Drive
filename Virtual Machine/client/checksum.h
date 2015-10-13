@@ -1,3 +1,8 @@
+/*
+Author: Gurpreet Singh
+Description:
+*/
+
 #include <zlib.h>
 
 uLong computeChecksum(const Bytef*, long);

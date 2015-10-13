@@ -1,3 +1,8 @@
+/*
+Author:	Gurpreet Singh
+Description:
+*/
+
 #include "hdb.h"
 #include <stdlib.h>
 #include <string.h>

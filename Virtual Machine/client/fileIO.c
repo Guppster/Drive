@@ -1,5 +1,11 @@
+/*
+Author: Gurpreet Singh
+Description:
+*/
+
 #include "fileIO.h"
 
+/* This method traverses all directories recursively in name and outputs a file with CRC checksums*/
 void traverse(char* name, int lengthOfFoldierName, char* outputname)
 {
 	struct dirent *dEnt;

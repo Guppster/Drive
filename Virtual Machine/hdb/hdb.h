@@ -1,3 +1,8 @@
+/*
+Author: Gurpreet Singh
+Description:
+*/
+
 #ifndef HDB_H
 #define HDB_H
 
