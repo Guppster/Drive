@@ -203,6 +203,7 @@ hdb_record* hdb_user_files(hdb_connection* con, const char* username)
 /* Free the linked list returned by hdb_user_files() */
 void hdb_free_result(hdb_record* record) 
 {
+	//Declare temp objects to traverse linked list
 	hdb_record *node = record;
 	hdb_record *temp;
 
