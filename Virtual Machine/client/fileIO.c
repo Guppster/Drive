@@ -1,6 +1,6 @@
 #include "fileIO.h"
 
-void traverse(char* name, int lengthOfFoldierName)
+void traverse(char* name, int lengthOfFoldierName, char* outputname)
 {
 	struct dirent *dEnt;
 	struct stat fInfo;
@@ -52,7 +52,7 @@ void traverse(char* name, int lengthOfFoldierName)
 			strcat(tempname, dEnt->d_name);
 
 			//Enter directory and recursivly repeat process
-			traverse(tempname, lengthOfFoldierName);
+			traverse(tempname, lengthOfFoldierName, outputname);
 		}
 		else if (S_ISREG(fInfo.st_mode))	//If it is a regular file
 		{
@@ -66,27 +66,28 @@ void traverse(char* name, int lengthOfFoldierName)
 			strcat(full_path, "/");
 			strcat(full_path, dEnt->d_name);
 		
-			writeLineToFile(formattedname, computeChecksum(readFile(full_path), getSizeOfFile(full_path)));
+			writeLineToFile(formattedname, computeChecksum(readFile(full_path), getSizeOfFile(full_path)), outputname);
 		}
 	}
 
+	//Close the directory
 	closedir(pDir);
 }//End of traverse method
 
 //Formats and writes one line to the files.txt file. 
-void writeLineToFile(char* fileName, uLong checksum)
+void writeLineToFile(char* fileName, uLong checksum, char* outputname)
 {
 	FILE *fileptr;
-	fileptr = fopen("files.txt", "ab");
+	fileptr = fopen(outputname, "ab");
 	fprintf(fileptr, "%s,%lu\n", fileName, checksum);
 	fclose(fileptr);
 }//End of writeLineToFile method
 
 //Empties the files.txt file
-void cleanFilesCache()
+void cleanFilesCache(char* outputname)
 {
 	FILE *fileptr;
-	fileptr = fopen("files.txt", "w");
+	fileptr = fopen(outputname, "w");
 	fclose(fileptr);
 }//End of cleanFilesCache method
 

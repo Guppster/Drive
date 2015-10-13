@@ -53,6 +53,7 @@ void hdb_store_file(hdb_connection* con, hdb_record* record)
 	freeReplyObject(reply);
 }//End of hdb_store_file method
 
+
 /* Remove a file record from the Hooli database. */
 int hdb_remove_file(hdb_connection* con, const char* username, const char* filename) 
 {
