@@ -1,6 +1,6 @@
 /*
 Author:	Gurpreet Singh
-Description:
+Description: This class is responsible for all server related function including connecting to server, writting records, deleting record, etc.
 */
 
 #include "hdb.h"
