@@ -52,12 +52,24 @@ int open_connection(struct addrinfo* addr_list)
 
 int main(int argc, char** argv)
 {
-	// Connect to the server
-	struct addrinfo* results = get_sockaddr("localhost", argv[1]);
+	char* msg = "hello world\r\n"; // Message to send
+	char buffer[strlen(msg) + 1]; // Buffer to store received message, leaving
+								  // space for the NULL terminator
+								  // Connect to the server
+	struct addrinfo* results = get_sockaddr("localhost", "5000");
 	int sockfd = open_connection(results);
+	// Send the message
+	if (send(sockfd, msg, strlen(msg), 0) == -1)
+		err(EXIT_FAILURE, "%s", "Unable to send");
+	// Read the echo reply
+	int bytes_read = recv(sockfd, buffer, sizeof(buffer) - 1, 0);
 
+	if (bytes_read == -1)
+		err(EXIT_FAILURE, "%s", "Unable to read");
+	// Add the terminating NULL character to the end and print it
+	buffer[bytes_read] = '\0';
+	printf("Data received: %s", buffer);
 	// Close the connection
 	close(sockfd);
-
-	exit(EXIT_SUCCESS);
+	exit(EXIT_SUCCESS);
 }
