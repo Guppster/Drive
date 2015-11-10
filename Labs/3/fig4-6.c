@@ -8,7 +8,8 @@
 #include <sys/types.h>
 
 #define BACKLOG 25
-int bind_socket(struct addrinfo* addr_list);
+
+int bind_socket(struct addrinfo* addr_list);
 struct addrinfo* get_server_sockaddr(const char* port);
 int wait_for_connection(int sockfd);
 void handle_connection(int connectionfd);
@@ -34,7 +35,8 @@ void handle_connection(int connectionfd)
 				break;
 			}
 		}
-	} while (bytes_read > 0);
+	} while (bytes_read > 0);
+
 	// Close the connection
 	close(connectionfd);
 }
@@ -78,7 +80,8 @@ struct addrinfo* get_server_sockaddr(const char* port)
 	if (retval)
 		errx(EXIT_FAILURE, "%s", gai_strerror(retval));
 	return results;
-}
+}
+
 int bind_socket(struct addrinfo* addr_list)
 {
 	struct addrinfo* addr;
@@ -98,7 +101,8 @@ int bind_socket(struct addrinfo* addr_list)
 
 		// Allow the port to be re-used if currently in the TIME_WAIT state
 		if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) == -1)
-			err(EXIT_FAILURE, "%s", "Unable to set socket option");
+			err(EXIT_FAILURE, "%s", "Unable to set socket option");
+
 		// Try to bind the socket to the address/port
 		if (bind(sockfd, addr->ai_addr, addr->ai_addrlen) == -1)
 		{
@@ -151,4 +155,7 @@ int main(int argc, char** argv)
 	// Close the greeter socket and exit
 	close(sockfd);
 	exit(EXIT_SUCCESS);
-}
+}
+
+
+
