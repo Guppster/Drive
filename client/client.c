@@ -36,18 +36,40 @@ int main(int argc, char *argv[])
 	struct addrinfo* results = get_sockaddr(options[2], options[3]);
 	int sockfd = open_connection(results);
 
+	//Issue an AUTH request
+	char msg[80];
+	strcpy(msg, "AUTH\n");
+
+	strcat(msg, "username:");
+	strcat(msg, options[0]);
+	strcat(msg, "\n");
+
+	strcat(msg, "password:");
+	strcat(msg, options[1]);
+	strcat(msg, "\n\n");
+
+	char buffer[strlen(msg) + 1]; // Buffer to store received message, leaving space for the NULL terminator
+								
+	// Send the message
+	if (send(sockfd, &msg, strlen(msg), 0) == -1)
+		err(EXIT_FAILURE, "%s", "Unable to send");
+	// Read the echo reply
+	int bytes_read = recv(sockfd, buffer, sizeof(buffer) - 1, 0);
+
 	//Create a DB Connection
-	hdb_connection* dbConnection = hdb_connect(options[2]);
+	//hdb_connection* dbConnection = hdb_connect(options[2]);
 
 	//Check if DB Connection is valid.
 
-	//Issue an AUTH request
-	char* authToken = hdb_authenticate(dbConnection, options[1], options[2]);
+
+	//char* authToken = hdb_authenticate(dbConnection, options[1], options[2]);
+
+
 
 	//Check if AUTH is valid from 16-byte alphanumeric authentication token. NULL = Invalid. 
 
 	//Send the list of files/checksums in a LIST request to the server. Again, this can (preferably) come from a linked list in memory, or can be read from the temporary file you generated
-	//Okay honestly wtf is a LIST request. back to editing my vimrc. :(
+	
 
 	// Close the connection
 	close(sockfd);
@@ -183,6 +205,5 @@ void parseInput(int argc, char *argv[], char* result[])
 	{
 		result[4] = "~/hooli";
 	}
-	
-	exit(0);
+
 }

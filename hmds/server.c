@@ -15,12 +15,15 @@ Description: This is the main file
 #include <err.h>
 #include <netdb.h>
 
+#define BACKLOG 25
+
 static int verbose_flag = 0;
 
 int bind_socket(struct addrinfo* addr_list);
 struct addrinfo* get_server_sockaddr(const char* port);
 int wait_for_connection(int sockfd);
 void handle_connection(int connectionfd);
+void parseInput(int argc, char *argv[], char* result[]);
 
 int main(int argc, char *argv[])
 {
@@ -59,10 +62,8 @@ void handle_connection(int connectionfd)
 		// If the data was read successfully
 		if (bytes_read > 0)
 		{
-			// Add a terminating NULL character and print the message received
-			buffer[bytes_read] = '\0';
-			printf("Message received (%d bytes): %s\n", bytes_read, buffer);
-
+			//Determine if request is a AUTH or LIST request
+			printf("%s", buffer);
 		}
 	} while (bytes_read > 0);
 
@@ -214,6 +215,4 @@ void parseInput(int argc, char *argv[], char* result[])
 	{
 		result[1] = "9000";
 	}
-
-	exit(0);
 }
