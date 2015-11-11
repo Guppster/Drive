@@ -1,6 +1,6 @@
 /*
 Author: Gurpreet Singh
-Description: This is the main file, it operates fileIO.c and Checksum.c to achieve the final result of a test file containing names and CRCs
+Description: This is the main file
 */
 
 #include <unistd.h>
@@ -8,35 +8,23 @@ Description: This is the main file, it operates fileIO.c and Checksum.c to achie
 #include <stdlib.h>
 #include <stdio.h>
 #include <syslog.h>
+#include <string.h>
+
+static int verbose_flag = 0;
+
+void parseInput(int argc, char *argv[], char* result[]);
 
 int main(int argc, char *argv[])
 {
-	//Options
-
-	//-s HOSTNAME / --server HOSTNAME
-	//Specifies the server's hostname. If not given, default to localhost.
-
-	//-p PORT / --port PORT
-	//Specifies the server's port. If not given, default to 9000.
-	
-	//- d DIR / --dir DIR
-	//Specifies the Hooli root directory.If not given, default to ~/ hooli.
-	
-	//- v / --verbose
-	//Enable verbose output : set the syslog level to DEBUG.Otherwise, it should default to INFO.
-
-	//Your client should also require two arguments : USERNAME and PASSWORD.
-	
-	static int verbose_flag = 0;
-	int c;
-	char* hostname = NULL;
-	char* dir = NULL;
-	char* port = NULL;
-	char* name = NULL;
-	char* pass = NULL;
-
 	openlog("client", LOG_PERROR | LOG_PID | LOG_NDELAY, LOG_USER);
+	char* options[5] = { 0 };
+	parseInput(argc, argv, options);
 
+}//End of main method
+
+void parseInput(int argc, char *argv[], char* result[])
+{
+	int c;
 	while (1)
 	{
 		static struct option long_options[] =
@@ -64,15 +52,15 @@ int main(int argc, char *argv[])
 			break;
 		
 		case 's':
-			hostname = optarg; 
+			result[2] = optarg; 
 			break;
 
 		case 'd':
-			dir = optarg;
+			result[4] = optarg;
 			break;
 
 		case 'o':
-			port = optarg;
+			result[3] = optarg;
 			break;
 
 		case '?':
@@ -85,8 +73,8 @@ int main(int argc, char *argv[])
 
 	if (optind == argc-2)
 	{
-			name = argv[optind++];
-			pass = argv[optind++];
+			result[0] = argv[optind++];
+			result[1] = argv[optind++];
 	}
 	else
 	{
@@ -95,7 +83,20 @@ int main(int argc, char *argv[])
 		exit(EXIT_FAILURE);
 	}
 
-	printf("%s, %s, %s, %s, %s \n", name, pass, hostname, dir, port);
-	exit(0);
+	if (result[2] == 0)
+	{
+		result[2] = "localhost";
+	}
+	
+	if (result[3] == 0)
+	{
+		result[3] = "9000";
+	}
 
-}//End of main method
+	if (result[4] == 0)
+	{
+		result[4] = "~/hooli";
+	}
+	
+	exit(0);
+}
