@@ -71,5 +71,6 @@ int main(int argc, char** argv)
 	printf("Data received: %s", buffer);
 	// Close the connection
 	close(sockfd);
-	exit(EXIT_SUCCESS);
-}
+	exit(EXIT_SUCCESS);
+
+}
