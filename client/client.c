@@ -9,10 +9,18 @@ Description: This is the main file
 #include <stdio.h>
 #include <syslog.h>
 #include <string.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <arpa/inet.h>
+#include <err.h>
+#include <netdb.h>
+#include <hfs.h>
 
 static int verbose_flag = 0;
 
 void parseInput(int argc, char *argv[], char* result[]);
+int open_connection(struct addrinfo* addr_list);
+struct addrinfo* get_sockaddr(const char* hostname, const char* port);
 
 int main(int argc, char *argv[])
 {
@@ -20,7 +28,85 @@ int main(int argc, char *argv[])
 	char* options[5] = { 0 };
 	parseInput(argc, argv, options);
 
+	//Scan the Hooli root directory (as in assignment 1), generating a list of files/checksums.
+	hfs_entry* listRoot = hfs_get_files(options[4]);
+	hfs_entry* current = listRoot;
+
+	// Connect to the server
+	struct addrinfo* results = get_sockaddr(options[2], options[3]);
+	int sockfd = open_connection(results);
+
+	//Create a DB Connection
+	hdb_connection* dbConnection = hdb_connect(options[2]);
+
+	//Check if DB Connection is valid.
+
+	//Issue an AUTH request
+	char* authToken = hdb_authenticate(dbConnection, options[1], options[2]);
+
+	//Check if AUTH is valid from 16-byte alphanumeric authentication token. NULL = Invalid. 
+
+	//Send the list of files/checksums in a LIST request to the server. Again, this can (preferably) come from a linked list in memory, or can be read from the temporary file you generated
+	//Okay honestly wtf is a LIST request. back to editing my vimrc. :(
+
+	// Close the connection
+	close(sockfd);
+
+	//Print the list of files requested by the server. If the server requests no files, print an appropriate message.
+
+	exit(EXIT_SUCCESS);
+
 }//End of main method
+
+struct addrinfo* get_sockaddr(const char* hostname, const char* port)
+{
+	struct addrinfo hints;
+	struct addrinfo* results;
+
+	memset(&hints, 0, sizeof(struct addrinfo));
+
+	//Return socket addresses for the server's IPv4 addresses
+	hints.ai_family = AF_INET; 
+	
+	//Return TCP socket addresses
+	hints.ai_socktype = SOCK_STREAM;
+	
+	int retval = getaddrinfo(NULL, port, &hints, &results);
+	
+	if (retval) errx(EXIT_FAILURE, "%s", gai_strerror(retval));
+	
+	return results;
+}
+
+int open_connection(struct addrinfo* addr_list)
+{
+	struct addrinfo* addr;
+	int sockfd;
+
+	//Iterate through each addrinfo in the list; stop when we successfully
+	//connect to one
+	for (addr = addr_list; addr != NULL; addr = addr->ai_next)
+	{
+		//Open a socket
+		sockfd = socket(addr->ai_family, addr->ai_socktype, addr->ai_protocol);
+
+		//Try the next address if we couldn't open a socket
+		if (sockfd == -1) continue;
+
+		//Stop iterating if we're able to connect to the server
+		if (connect(sockfd, addr->ai_addr, addr->ai_addrlen) != -1) break;
+	}
+
+	//Free the memory allocated to the addrinfo list
+	freeaddrinfo(addr_list);
+
+	//If addr is NULL, we tried every addrinfo and weren't able to connect to any
+	if (addr == NULL)
+		err(EXIT_FAILURE, "%s", "Unable to connect");
+	else
+		return sockfd;
+		
+}
 
 void parseInput(int argc, char *argv[], char* result[])
 {
