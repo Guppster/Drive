@@ -26,18 +26,23 @@ int main(int argc, char *argv[])
 {
 	openlog("client", LOG_PERROR | LOG_PID | LOG_NDELAY, LOG_USER);
 	char* options[5] = { 0 };
+	char* token;
+	char body[10000];
+  body[0] = '\0';
 	parseInput(argc, argv, options);
-
+  
 	//Scan the Hooli root directory (as in assignment 1), generating a list of files/checksums.
 	hfs_entry* listRoot = hfs_get_files(options[4]);
 	hfs_entry* current = listRoot;
+  
+  printf("%s\n", current->abs_path);
 
-	// Connect to the server
+  // Connect to the server
 	struct addrinfo* results = get_sockaddr(options[2], options[3]);
 	int sockfd = open_connection(results);
 
 	//Issue an AUTH request
-	char msg[80];
+	char msg[strlen("AUTH\n") + strlen("username:") + sizeof(options[0]) + strlen("\n") + strlen("password:") + sizeof(options[1]) + strlen("\n\n")];
 	strcpy(msg, "AUTH\n");
 
 	strcat(msg, "username:");
@@ -48,29 +53,75 @@ int main(int argc, char *argv[])
 	strcat(msg, options[1]);
 	strcat(msg, "\n\n");
 
-	char buffer[80]; // Buffer to store received message, leaving space for the NULL terminator
-								
+	char bufferA[500]; // Buffer to store received message, leaving space for the NULL terminator
+	
 	// Send the message
 	if (send(sockfd, &msg, strlen(msg), 0) == -1)
 		err(EXIT_FAILURE, "%s", "Unable to send");
 	
 	// Read the reply
-	int bytes_read = recv(sockfd, buffer, sizeof(buffer) - 1, 0);
+	int bytes_readA = recv(sockfd, bufferA, sizeof(bufferA) - 1, 0);
 
 	//Check if reply is valid
-	if (bytes_read == -1)
+	if (bytes_readA == -1)
 		err(EXIT_FAILURE, "%s", "Unable to read");
 
-	//Print the reply
-	printf("%s\n", buffer);
+	token = strstr(bufferA, "Token:");
+	token[strlen(token) - 2] = '\0';
 
-	//Send the list of files/checksums in a LIST request to the server. Again, this can (preferably) come from a linked list in memory, or can be read from the temporary file you generated
+
+	//Send the list of files/checksums in a LIST request to the server. 
+	//Create a LIST request
+	strcpy(msg, "LIST\n");
+	strcat(msg, token);
+	strcat(msg, "\n");
+
+	char str[1000] = "";
+
+  while (current != NULL)
+	{
+		strcat(body, current->rel_path);
+		strcat(body, "\n");
+    
+		sprintf(str, "%x", current->crc32);
+    
+		strcat(body, str);
+		strcat(body, "\n");
+
+		current = current->next;
+	}
+
+	//Remove last newline
+	char *p = body;
+	p[strlen(p) - 1] = 0;
+	p[strlen(p) - 2] = 0;
+
+	strcat(msg, "Length:");
+	sprintf(str, "%d", strlen(body));
+	strcat(msg, str);
+	strcat(msg, "\n\n");
+
+	strcat(msg, body);
+
+	printf("%s\n", msg);
+
+	char bufferB[500]; // Buffer to store received message, leaving space for the NULL terminator
+
+	// Send the message
+	if (send(sockfd, &msg, strlen(msg), 0) == -1)
+		err(EXIT_FAILURE, "%s", "Unable to send");
+
+	// Read the reply
+	int bytes_readB = recv(sockfd, bufferB, sizeof(bufferB) - 1, 0);
+
+	//Check if reply is valid
+	if (bytes_readB == -1)
+		err(EXIT_FAILURE, "%s", "Unable to read");
 
 	// Close the connection
 	close(sockfd);
 
 	//Print the list of files requested by the server. If the server requests no files, print an appropriate message.
-
 	exit(EXIT_SUCCESS);
 
 }//End of main method
@@ -198,7 +249,7 @@ void parseInput(int argc, char *argv[], char* result[])
 
 	if (result[4] == 0)
 	{
-		result[4] = "~/hooli";
+		result[4] = "/hooli";
 	}
 
 }
