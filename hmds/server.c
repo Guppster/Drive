@@ -14,6 +14,8 @@ Description: This is the main file
 #include <arpa/inet.h>
 #include <err.h>
 #include <netdb.h>
+#include <hfs.h>
+#include <hdb.h>
 
 #define BACKLOG 25
 
@@ -22,7 +24,7 @@ static int verbose_flag = 0;
 int bind_socket(struct addrinfo* addr_list);
 struct addrinfo* get_server_sockaddr(const char* port);
 int wait_for_connection(int sockfd);
-void handle_connection(int connectionfd);
+void handle_connection(int connectionfd, char* hostname);
 void parseInput(int argc, char *argv[], char* result[]);
 
 int main(int argc, char *argv[])
@@ -41,18 +43,22 @@ int main(int argc, char *argv[])
 	if (listen(sockfd, BACKLOG) == -1)
 		err(EXIT_FAILURE, "%s", "Unable to listen on socket");
 
-	// Wait for a connection
+	// Wait for a connectioni
 	int connectionfd = wait_for_connection(sockfd);
-	handle_connection(connectionfd);
+	handle_connection(connectionfd, options[0]);
 
 	// Close the connection socket
 	close(connectionfd);
 }
 
-void handle_connection(int connectionfd)
+void handle_connection(int connectionfd, char* hostname)
 {
 	char buffer[4096];
 	int bytes_read;
+	char* pch;
+	char username[40];
+	char password[40];
+	char msg[80];
 
 	do
 	{
@@ -62,8 +68,55 @@ void handle_connection(int connectionfd)
 		// If the data was read successfully
 		if (bytes_read > 0)
 		{
-			//Determine if request is a AUTH or LIST request
-			printf("%s", buffer);
+			pch = strtok(buffer, "\n");
+
+			while (pch != NULL)
+			{
+				if (strcmp(pch, "AUTH") == 0)
+				{
+					pch = strtok(NULL, "\n");
+					strcpy(username, pch+9);
+
+					printf("Authenticating User: %s \n", username);
+
+					pch = strtok(NULL, "\n");
+					strcpy(password, pch+9);
+
+					//Create a DB Connection
+					hdb_connection* dbConnection = hdb_connect(hostname);
+
+					//Check if DB Connection is valid.
+		
+					//Get the AuthToken
+					char* authToken = hdb_authenticate(dbConnection, username, password);
+					
+					//Check if AUTH is valid from 16-byte alphanumeric authentication token. NULL = Invalid. 
+					if (hdb_verify_token(dbConnection, authToken) != NULL)
+					{
+						strcpy(msg, "200 Authentication successful\n");
+						strcat(msg, "Token:");
+						strcat(msg, authToken);
+						strcat(msg, "\n\n");
+					}
+					else
+					{
+						strcpy(msg, "401 Unauthorize\n\n");
+					}
+
+					// Send the message
+					if (send(connectionfd, &msg, strlen(msg), 0) == -1)
+						err(EXIT_FAILURE, "%s", "Unable to send\n");
+
+				}
+				else if (strcmp(pch, "LIST") == 0)
+				{
+
+				}
+
+				pch = strtok(NULL, "\n");
+
+			}
+
 		}
 	} while (bytes_read > 0);
 

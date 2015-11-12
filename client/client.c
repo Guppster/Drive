@@ -48,28 +48,23 @@ int main(int argc, char *argv[])
 	strcat(msg, options[1]);
 	strcat(msg, "\n\n");
 
-	char buffer[strlen(msg) + 1]; // Buffer to store received message, leaving space for the NULL terminator
+	char buffer[80]; // Buffer to store received message, leaving space for the NULL terminator
 								
 	// Send the message
 	if (send(sockfd, &msg, strlen(msg), 0) == -1)
 		err(EXIT_FAILURE, "%s", "Unable to send");
-	// Read the echo reply
+	
+	// Read the reply
 	int bytes_read = recv(sockfd, buffer, sizeof(buffer) - 1, 0);
 
-	//Create a DB Connection
-	//hdb_connection* dbConnection = hdb_connect(options[2]);
+	//Check if reply is valid
+	if (bytes_read == -1)
+		err(EXIT_FAILURE, "%s", "Unable to read");
 
-	//Check if DB Connection is valid.
-
-
-	//char* authToken = hdb_authenticate(dbConnection, options[1], options[2]);
-
-
-
-	//Check if AUTH is valid from 16-byte alphanumeric authentication token. NULL = Invalid. 
+	//Print the reply
+	printf("%s\n", buffer);
 
 	//Send the list of files/checksums in a LIST request to the server. Again, this can (preferably) come from a linked list in memory, or can be read from the temporary file you generated
-	
 
 	// Close the connection
 	close(sockfd);
