@@ -33,6 +33,11 @@ int main(int argc, char *argv[])
 	char* options[2] = { 0 };
 	parseInput(argc, argv, options);
 
+  if(verbose_flag == 0)
+  {
+    setlogmask(LOG_UPTO(LOG_INFO));
+  }
+
 	// We want to listen on the port specified on the command line
 	struct addrinfo* results = get_server_sockaddr(options[1]);
 
@@ -42,6 +47,8 @@ int main(int argc, char *argv[])
 	// Start listening on the socket
 	if (listen(sockfd, BACKLOG) == -1)
 		err(EXIT_FAILURE, "%s", "Unable to listen on socket");
+  
+  syslog(LOG_INFO, "Server listening on port %s", options[1]);
 
 	// Wait for a connection
 	int connectionfd = wait_for_connection(sockfd);
@@ -65,6 +72,8 @@ void handle_connection(int connectionfd, char* hostname)
 	listBody[0] = '\0';
 	char str[20];
 
+  syslog(LOG_INFO, "Incoming connection from %s", hostname);
+
   do
   {
     // Read up to 4095 bytes from the client
@@ -85,8 +94,8 @@ void handle_connection(int connectionfd, char* hostname)
           pch = strtok(NULL, "\n");
           strcpy(username, pch+9);
 
-          printf("Authenticating User: %s \n", username);
-
+          syslog(LOG_INFO, "Username: %s", username);
+          
           pch = strtok(NULL, "\n");
           strcpy(password, pch+9);
 
@@ -96,6 +105,8 @@ void handle_connection(int connectionfd, char* hostname)
           //Check if AUTH is valid from 16-byte alphanumeric authentication token. NULL = Invalid. 
           if (hdb_verify_token(dbConnection, authToken) != NULL)
           {
+            syslog(LOG_DEBUG, "Authentication successful");
+
             strcpy(authMsg, "200 Authentication successful\n");
             strcat(authMsg, "Token:");
             strcat(authMsg, authToken);
@@ -103,6 +114,7 @@ void handle_connection(int connectionfd, char* hostname)
           }
           else
           {
+            syslog(LOG_DEBUG, "Authentication unsuccessful");
             strcpy(authMsg, "401 Unauthorized\n\n");
           }
 
@@ -112,67 +124,68 @@ void handle_connection(int connectionfd, char* hostname)
         }
         else if (strcmp(pch, "LIST") == 0)
         {
+          syslog(LOG_INFO, "Receiving file list");
+
           pch = strtok(NULL, "\n");
           
-          if(hdb_verify_token(dbConnection, pch+6) != NULL)
-          {
-            pch = strtok(NULL, "\n");
+		  if (hdb_verify_token(dbConnection, pch + 6) != NULL)
+		  {
+			  pch = strtok(NULL, "\n");
 
-            char lenBuffer[100];
-			char filename[50];
-			char str[100];
-            int currLen = 0;
-            int totalLen = 0;
-            
-            strcpy(lenBuffer, pch+7);
-            lenBuffer[strlen(lenBuffer)] = '\0';
+			  char lenBuffer[100];
+			  char filename[50];
+			  char str[100];
+			  int currLen = 0;
+			  int totalLen = 0;
 
-            totalLen = (int) strtol(lenBuffer, (char **)NULL, 10);
+			  strcpy(lenBuffer, pch + 7);
+			  lenBuffer[strlen(lenBuffer)] = '\0';
 
-            while((currLen <= totalLen))
-            {
-              pch = strtok(NULL, "\n");
+			  totalLen = (int)strtol(lenBuffer, (char **)NULL, 10);
 
-			  if (pch == NULL) break;
-
-              currLen = currLen + strlen(pch) + 1; 
-			  strcpy(filename, pch);
-
-			  if (hdb_file_exists(dbConnection, username, filename))
+			  while ((currLen <= totalLen))
 			  {
 				  pch = strtok(NULL, "\n");
 
-				  if (strcmp(pch, hdb_file_checksum(dbConnection, username, filename)))
+				  if (pch == NULL) break;
+
+				  currLen = currLen + strlen(pch) + 1;
+				  strcpy(filename, pch);
+
+				  if (hdb_file_exists(dbConnection, username, filename))
 				  {
-					  continue;
+					  pch = strtok(NULL, "\n");
+
+					  syslog(LOG_DEBUG, "* %s, %s", filename, pch);
+
+					  if (strcmp(pch, hdb_file_checksum(dbConnection, username, filename)))
+					  {
+						  continue;
+					  }
+					  else
+					  {
+						  //This file has changed
+						  strcat(listBody, filename);
+						  strcat(listBody, "\n");
+					  }
 				  }
 				  else
 				  {
-					  //This file has changed
+					  //Skip the checksum token for this file
+					  pch = strtok(NULL, "\n");
+
+					  syslog(LOG_DEBUG, "* %s, %s", filename, pch);
+
+					  //This is a new file
 					  strcat(listBody, filename);
 					  strcat(listBody, "\n");
 				  }
 			  }
-			  else
-			  {
-				  //Skip the checksum token for this file
-				  pch = strtok(NULL, "\n");
-
-				  //This is a new file
-				  strcat(listBody, filename);
-				  strcat(listBody, "\n");
-			  }
-
-			  if (verbose_flag == 1)
-			  {
-				  printf("%s\n", filename);
-			  }
-            }
-          }
-          else
-          {
-            strcpy(listMsg, "401 Unauthorized\n\n");
-          }
+		  }
+		  else
+		  {
+			  strcpy(listMsg, "401 Unauthorized\n\n");
+		  }
 
 		  //Remove last newline
 		  char *p = listBody;
@@ -182,6 +195,8 @@ void handle_connection(int connectionfd, char* hostname)
 
 		  if (str > 0)
 		  {
+			  syslog(LOG_INFO, "Requesting Files:\n%s", listBody);
+
 			  //Files Changed/Requested (302)
 			  strcpy(listMsg, "302 Files requested\n");
 			  strcat(listMsg, "Length:");
@@ -191,6 +206,8 @@ void handle_connection(int connectionfd, char* hostname)
 		  }
 		  else
 		  {
+			  syslog(LOG_INFO, "Requesting No Files");
+
 			  //No Files Changed/Requested (204)
 			  strcpy(listMsg, "204 No files requested\n\n");
 		  }
@@ -204,6 +221,8 @@ void handle_connection(int connectionfd, char* hostname)
       }
     }
   } while (bytes_read > 0);
+
+	syslog(LOG_INFO, "Connection terminated");
 
 	// Close the connection
 	close(connectionfd);
