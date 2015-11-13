@@ -3,24 +3,7 @@ Author: Gurpreet Singh
 Description: This is the main file
 */
 
-#include <unistd.h>
-#include <getopt.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <syslog.h>
-#include <string.h>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <arpa/inet.h>
-#include <err.h>
-#include <netdb.h>
-#include <hfs.h>
-
-static int verbose_flag = 0;
-
-void parseInput(int argc, char *argv[], char* result[]);
-int open_connection(struct addrinfo* addr_list);
-struct addrinfo* get_sockaddr(const char* hostname, const char* port);
+#include "client.h"
 
 int main(int argc, char *argv[])
 {
@@ -31,25 +14,29 @@ int main(int argc, char *argv[])
 	body[0] = '\0';
 	char str[1000] = "";
 
-	parseInput(argc, argv, options);
-
-	if (verbose_flag == 0)
-		setlogmask(LOG_UPTO(LOG_INFO));
+	parseInput(argc, argv, options, true);
 
 	syslog(LOG_INFO, "Scanning Hooli directory: %s", options[4]);
 
 	//Scan the Hooli root directory, generating a list of files/checksums.
 	hfs_entry* listRoot = hfs_get_files(options[4]);
-	hfs_entry* current = listRoot;
+
+  if(listRoot == NULL)
+  {
+	  syslog(LOG_INFO, "Unable to find any files in directory tree");
+    exit(EXIT_FAILURE);
+  }
+  
+  hfs_entry* current = listRoot;
 
 	do
 	{
-		syslog(LOG_DEBUG, "* %s", current->rel_path);
-
 		strcat(body, current->rel_path);
 		strcat(body, "\n");
 
 		sprintf(str, "%x", current->crc32);
+
+		syslog(LOG_DEBUG, "* %s (%s)", current->rel_path, str);
 
 		strcat(body, str);
 		strcat(body, "\n");
@@ -61,7 +48,7 @@ int main(int argc, char *argv[])
 	char *p = body;
 	p[strlen(p) - 1] = 0;
 
-    //Connect to the server
+  //Connect to the server
 	syslog(LOG_INFO, "Connecting to server");
 	struct addrinfo* results = get_sockaddr(options[2], options[3]);
 	int sockfd = open_connection(results);
@@ -195,83 +182,4 @@ int open_connection(struct addrinfo* addr_list)
 		err(EXIT_FAILURE, "%s", "Unable to connect");
 	else
 		return sockfd;
-		
-}
-
-void parseInput(int argc, char *argv[], char* result[])
-{
-	int c;
-	while (1)
-	{
-		static struct option long_options[] =
-		{
-			{"verbose", no_argument, &verbose_flag, 1},
-			{"server",	required_argument,	0,	's'},
-			{"dir",		required_argument,	0,	'd'},
-			{"port",	required_argument,	0,	'o'},
-			{ 0, 0, 0, 0 }
-		};
-
-		/* getopt_long stores the option index here. */
-		int option_index = 0;
-
-		c = getopt_long(argc, argv, "vs:d:o:", long_options, &option_index);
-
-		/* Detect the end of the options. */
-		if (c == -1)
-			break;
-
-		switch (c)
-		{
-		case 'v':
-			verbose_flag = 1;
-			break;
-		
-		case 's':
-			result[2] = optarg; 
-			break;
-
-		case 'd':
-			result[4] = optarg;
-			break;
-
-		case 'o':
-			result[3] = optarg;
-			break;
-
-		case '?':
-			/* getopt_long already printed an error message. */
-			exit(EXIT_FAILURE);
-			break;
-		}
-
-	}
-
-	if (optind == argc-2)
-	{
-			result[0] = argv[optind++];
-			result[1] = argv[optind++];
-	}
-	else
-	{
-		syslog(LOG_ERR, "No Username / Password specified");
-		closelog();
-		exit(EXIT_FAILURE);
-	}
-
-	if (result[2] == 0)
-	{
-		result[2] = "localhost";
-	}
-	
-	if (result[3] == 0)
-	{
-		result[3] = "9000";
-	}
-
-	if (result[4] == 0)
-	{
-		result[4] = "/hooli";
-	}
-
 }

@@ -3,41 +3,14 @@ Author: Gurpreet Singh
 Description: This is the main file
 */
 
-#include <unistd.h>
-#include <getopt.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <syslog.h>
-#include <string.h>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <arpa/inet.h>
-#include <err.h>
-#include <netdb.h>
-#include <hfs.h>
-#include <hdb.h>
-
-#define BACKLOG 25
-
-static int verbose_flag = 0;
-
-int bind_socket(struct addrinfo* addr_list);
-struct addrinfo* get_server_sockaddr(const char* port);
-int wait_for_connection(int sockfd);
-void handle_connection(int connectionfd, char* hostname);
-void parseInput(int argc, char *argv[], char* result[]);
+#include "server.h"
 
 int main(int argc, char *argv[])
 {
 	openlog("server", LOG_PERROR | LOG_PID | LOG_NDELAY, LOG_USER);
 	char* options[2] = { 0 };
-	parseInput(argc, argv, options);
-
-  if(verbose_flag == 0)
-  {
-    setlogmask(LOG_UPTO(LOG_INFO));
-  }
-
+	parseInput(argc, argv, options, false);
+ 
 	// We want to listen on the port specified on the command line
 	struct addrinfo* results = get_server_sockaddr(options[1]);
 
@@ -317,59 +290,4 @@ int wait_for_connection(int sockfd)
 
 	// Return the socket file descriptor for the new connection
 	return connectionfd;
-}
-
-void parseInput(int argc, char *argv[], char* result[])
-{
-	int c;
-	while (1)
-	{
-		static struct option long_options[] =
-		{
-			{ "verbose", no_argument, &verbose_flag, 1 },
-			{ "server",	required_argument,	0,	's' },
-			{ "port",	required_argument,	0,	'o' },
-			{ 0, 0, 0, 0 }
-		};
-
-		/* getopt_long stores the option index here. */
-		int option_index = 0;
-
-		c = getopt_long(argc, argv, "vs:d:o:", long_options, &option_index);
-
-		/* Detect the end of the options. */
-		if (c == -1)
-			break;
-
-		switch (c)
-		{
-		case 'v':
-			verbose_flag = 1;
-			break;
-
-		case 's':
-			result[0] = optarg;
-			break;
-
-		case 'o':
-			result[1] = optarg;
-			break;
-
-		case '?':
-			/* getopt_long already printed an error message. */
-			exit(EXIT_FAILURE);
-			break;
-		}
-
-	}
-
-	if (result[0] == 0)
-	{
-		result[0] = "localhost";
-	}
-
-	if (result[1] == 0)
-	{
-		result[1] = "9000";
-	}
 }
