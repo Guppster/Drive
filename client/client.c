@@ -27,36 +27,63 @@ int main(int argc, char *argv[])
 	openlog("client", LOG_PERROR | LOG_PID | LOG_NDELAY, LOG_USER);
 	char* options[5] = { 0 };
 	char* token;
-	char body[10000];
-  body[0] = '\0';
+	char body[10000];	
+	body[0] = '\0';
+	char str[1000] = "";
+
 	parseInput(argc, argv, options);
-  
-	//Scan the Hooli root directory (as in assignment 1), generating a list of files/checksums.
+
+	if (verbose_flag == 0)
+		setlogmask(LOG_UPTO(LOG_INFO));
+
+	syslog(LOG_INFO, "Scanning Hooli directory: %s", options[4]);
+
+	//Scan the Hooli root directory, generating a list of files/checksums.
 	hfs_entry* listRoot = hfs_get_files(options[4]);
 	hfs_entry* current = listRoot;
-  
-  printf("%s\n", current->abs_path);
 
-  // Connect to the server
+	do
+	{
+		syslog(LOG_DEBUG, "* %s", current->rel_path);
+
+		strcat(body, current->rel_path);
+		strcat(body, "\n");
+
+		sprintf(str, "%x", current->crc32);
+
+		strcat(body, str);
+		strcat(body, "\n");
+
+		current = current->next;
+	} while (current != NULL);
+
+	//Remove last newline
+	char *p = body;
+	p[strlen(p) - 1] = 0;
+
+    //Connect to the server
+	syslog(LOG_INFO, "Connecting to server");
 	struct addrinfo* results = get_sockaddr(options[2], options[3]);
 	int sockfd = open_connection(results);
 
 	//Issue an AUTH request
-	char msg[strlen("AUTH\n") + strlen("username:") + sizeof(options[0]) + strlen("\n") + strlen("password:") + sizeof(options[1]) + strlen("\n\n")];
-	strcpy(msg, "AUTH\n");
+	char authMsg[strlen("AUTH\n") + strlen("username:") + sizeof(options[0]) + strlen("\n") + strlen("password:") + sizeof(options[1]) + strlen("\n\n")];
+	strcpy(authMsg, "AUTH\n");
 
-	strcat(msg, "username:");
-	strcat(msg, options[0]);
-	strcat(msg, "\n");
+	strcat(authMsg, "username:");
+	strcat(authMsg, options[0]);
+	strcat(authMsg, "\n");
 
-	strcat(msg, "password:");
-	strcat(msg, options[1]);
-	strcat(msg, "\n\n");
+	strcat(authMsg, "password:");
+	strcat(authMsg, options[1]);
+	strcat(authMsg, "\n\n");
 
 	char bufferA[500]; // Buffer to store received message, leaving space for the NULL terminator
 	
+	syslog(LOG_DEBUG, "Sending Credentials");
+
 	// Send the message
-	if (send(sockfd, &msg, strlen(msg), 0) == -1)
+	if (send(sockfd, &authMsg, strlen(authMsg), 0) == -1)
 		err(EXIT_FAILURE, "%s", "Unable to send");
 	
 	// Read the reply
@@ -65,50 +92,43 @@ int main(int argc, char *argv[])
 	//Check if reply is valid
 	if (bytes_readA == -1)
 		err(EXIT_FAILURE, "%s", "Unable to read");
+	
+	if (strncmp(bufferA, "200", 3) != 0)
+	{
+		syslog(LOG_INFO, "Connecting Failed");
+		exit(EXIT_FAILURE);
+	}
+
+	syslog(LOG_INFO, "Authentication successful");
 
 	token = strstr(bufferA, "Token:");
 	token[strlen(token) - 2] = '\0';
 
-
 	//Send the list of files/checksums in a LIST request to the server. 
 	//Create a LIST request
-	strcpy(msg, "LIST\n");
-	strcat(msg, token);
-	strcat(msg, "\n");
 
-	char str[1000] = "";
-
-  while (current != NULL)
-	{
-		strcat(body, current->rel_path);
-		strcat(body, "\n");
-    
-		sprintf(str, "%x", current->crc32);
-    
-		strcat(body, str);
-		strcat(body, "\n");
-
-		current = current->next;
-	}
-
-	//Remove last newline
-	char *p = body;
-	p[strlen(p) - 1] = 0;
-	p[strlen(p) - 2] = 0;
-
-	strcat(msg, "Length:");
 	sprintf(str, "%d", strlen(body));
-	strcat(msg, str);
-	strcat(msg, "\n\n");
 
-	strcat(msg, body);
+	char listMsg[strlen("LIST\n") + strlen("Token:") + sizeof(token) + strlen("\n") + strlen("Length:") + sizeof(str) + strlen("\n\n") + sizeof(body)];
 
-	printf("%s\n", msg);
+	strcpy(listMsg, "LIST\n");
 
-	char bufferB[500]; // Buffer to store received message, leaving space for the NULL terminator
+	strcat(listMsg, token);
+	strcat(listMsg, "\n");
+
+	strcat(listMsg, "Length:");
+
+	strcat(listMsg, str);
+	strcat(listMsg, "\n\n");
+	
+	strcat(listMsg, body);
+
+	char bufferB[10000]; // Buffer to store received message, leaving space for the NULL terminator
+
+  syslog(LOG_INFO, "Uploading file list");
 
 	// Send the message
-	if (send(sockfd, &msg, strlen(msg), 0) == -1)
+	if (send(sockfd, &listMsg, strlen(listMsg), 0) == -1)
 		err(EXIT_FAILURE, "%s", "Unable to send");
 
 	// Read the reply
@@ -117,6 +137,8 @@ int main(int argc, char *argv[])
 	//Check if reply is valid
 	if (bytes_readB == -1)
 		err(EXIT_FAILURE, "%s", "Unable to read");
+
+  syslog(LOG_INFO, "Server requested the following files:\n%s", strstr(bufferB, "\n\n") + 2);
 
 	// Close the connection
 	close(sockfd);

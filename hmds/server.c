@@ -43,7 +43,7 @@ int main(int argc, char *argv[])
 	if (listen(sockfd, BACKLOG) == -1)
 		err(EXIT_FAILURE, "%s", "Unable to listen on socket");
 
-	// Wait for a connectioni
+	// Wait for a connection
 	int connectionfd = wait_for_connection(sockfd);
 	handle_connection(connectionfd, options[0]);
 
@@ -58,67 +58,152 @@ void handle_connection(int connectionfd, char* hostname)
 	char* pch;
 	char username[40];
 	char password[40];
-	char msg[80];
+	char authMsg[80];
+	char listMsg[11000];
+	listMsg[0] = '\0';
+	char listBody[10000];
+	listBody[0] = '\0';
+	char str[20];
 
-	do
-	{
-		// Read up to 4095 bytes from the client
-		bytes_read = recv(connectionfd, buffer, sizeof(buffer) - 1, 0);
+  do
+  {
+    // Read up to 4095 bytes from the client
+    bytes_read = recv(connectionfd, buffer, sizeof(buffer) - 1, 0);
 
-		// If the data was read successfully
-		if (bytes_read > 0)
-		{
-			pch = strtok(buffer, "\n");
+    //Create a DB Connection
+    hdb_connection* dbConnection = hdb_connect(hostname);
 
-			while (pch != NULL)
-			{
-				if (strcmp(pch, "AUTH") == 0)
-				{
-					pch = strtok(NULL, "\n");
-					strcpy(username, pch+9);
+    // If the data was read successfully
+    if (bytes_read > 0)
+    {
+      pch = strtok(buffer, "\n");
 
-					printf("Authenticating User: %s \n", username);
+      while (pch != NULL)
+      {
+        if (strcmp(pch, "AUTH") == 0)
+        {
+          pch = strtok(NULL, "\n");
+          strcpy(username, pch+9);
 
-					pch = strtok(NULL, "\n");
-					strcpy(password, pch+9);
+          printf("Authenticating User: %s \n", username);
 
-					//Create a DB Connection
-					hdb_connection* dbConnection = hdb_connect(hostname);
+          pch = strtok(NULL, "\n");
+          strcpy(password, pch+9);
 
-					//Check if DB Connection is valid.
-		
-					//Get the AuthToken
-					char* authToken = hdb_authenticate(dbConnection, username, password);
-					
-					//Check if AUTH is valid from 16-byte alphanumeric authentication token. NULL = Invalid. 
-					if (hdb_verify_token(dbConnection, authToken) != NULL)
-					{
-						strcpy(msg, "200 Authentication successful\n");
-						strcat(msg, "Token:");
-						strcat(msg, authToken);
-						strcat(msg, "\n\n");
-					}
-					else
-					{
-						strcpy(msg, "401 Unauthorize\n\n");
-					}
+          //Get the AuthToken
+          char* authToken = hdb_authenticate(dbConnection, username, password);
+          
+          //Check if AUTH is valid from 16-byte alphanumeric authentication token. NULL = Invalid. 
+          if (hdb_verify_token(dbConnection, authToken) != NULL)
+          {
+            strcpy(authMsg, "200 Authentication successful\n");
+            strcat(authMsg, "Token:");
+            strcat(authMsg, authToken);
+            strcat(authMsg, "\n\n");
+          }
+          else
+          {
+            strcpy(authMsg, "401 Unauthorized\n\n");
+          }
 
-					// Send the message
-					if (send(connectionfd, &msg, strlen(msg), 0) == -1)
-						err(EXIT_FAILURE, "%s", "Unable to send\n");
+          // Send the message
+          if (send(connectionfd, &authMsg, strlen(authMsg), 0) == -1)
+            err(EXIT_FAILURE, "%s", "Unable to send\n");
+        }
+        else if (strcmp(pch, "LIST") == 0)
+        {
+          pch = strtok(NULL, "\n");
+          
+          if(hdb_verify_token(dbConnection, pch+6) != NULL)
+          {
+            pch = strtok(NULL, "\n");
 
-				}
-				else if (strcmp(pch, "LIST") == 0)
-				{
+            char lenBuffer[100];
+			char filename[50];
+			char str[100];
+            int currLen = 0;
+            int totalLen = 0;
+            
+            strcpy(lenBuffer, pch+7);
+            lenBuffer[strlen(lenBuffer)] = '\0';
 
-				}
+            totalLen = (int) strtol(lenBuffer, (char **)NULL, 10);
 
-				pch = strtok(NULL, "\n");
+            while((currLen <= totalLen))
+            {
+              pch = strtok(NULL, "\n");
 
-			}
+			  if (pch == NULL) break;
 
-		}
-	} while (bytes_read > 0);
+              currLen = currLen + strlen(pch) + 1; 
+			  strcpy(filename, pch);
+
+			  if (hdb_file_exists(dbConnection, username, filename))
+			  {
+				  pch = strtok(NULL, "\n");
+
+				  if (strcmp(pch, hdb_file_checksum(dbConnection, username, filename)))
+				  {
+					  continue;
+				  }
+				  else
+				  {
+					  //This file has changed
+					  strcat(listBody, filename);
+					  strcat(listBody, "\n");
+				  }
+			  }
+			  else
+			  {
+				  //Skip the checksum token for this file
+				  pch = strtok(NULL, "\n");
+
+				  //This is a new file
+				  strcat(listBody, filename);
+				  strcat(listBody, "\n");
+			  }
+
+			  if (verbose_flag == 1)
+			  {
+				  printf("%s\n", filename);
+			  }
+            }
+          }
+          else
+          {
+            strcpy(listMsg, "401 Unauthorized\n\n");
+          }
+
+		  //Remove last newline
+		  char *p = listBody;
+		  p[strlen(p) - 1] = 0;
+
+		  sprintf(str, "%d", strlen(listBody));
+
+		  if (str > 0)
+		  {
+			  //Files Changed/Requested (302)
+			  strcpy(listMsg, "302 Files requested\n");
+			  strcat(listMsg, "Length:");
+			  strcat(listMsg, str);
+			  strcat(listMsg, "\n\n");
+			  strcat(listMsg, listBody);
+		  }
+		  else
+		  {
+			  //No Files Changed/Requested (204)
+			  strcpy(listMsg, "204 No files requested\n\n");
+		  }
+
+          // Send the message
+          if (send(connectionfd, &listMsg, strlen(listMsg), 0) == -1)
+            err(EXIT_FAILURE, "%s", "Unable to send\n");
+
+        }
+        pch = strtok(NULL, "\n");
+      }
+    }
+  } while (bytes_read > 0);
 
 	// Close the connection
 	close(connectionfd);
