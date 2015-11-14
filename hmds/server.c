@@ -1,14 +1,21 @@
 /*
 Author: Gurpreet Singh
-Description: This is the main file
+Class: CS3357
+Date: Nov, 13 / 2015
+Description: This is the main file for the server side
 */
 
 #include "server.h"
 
 int main(int argc, char *argv[])
 {
+	//Opens a syslog
 	openlog("server", LOG_PERROR | LOG_PID | LOG_NDELAY, LOG_USER);
+	
+	//Declare an array of 5 options to be read in from command line
 	char* options[2] = { 0 };
+
+	//Parse the inputs from the command line and populate the options array
 	parseInput(argc, argv, options, false);
  
 	// We want to listen on the port specified on the command line
@@ -29,170 +36,195 @@ int main(int argc, char *argv[])
 
 	// Close the connection socket
 	close(connectionfd);
-}
+}//End of main method
 
 void handle_connection(int connectionfd, char* hostname)
 {
-	char buffer[4096];
-	int bytes_read;
-	char* pch;
-	char username[40];
-	char password[40];
-	char authMsg[80];
-	char listMsg[11000];
-	listMsg[0] = '\0';
-	char listBody[10000];
-	listBody[0] = '\0';
-	char str[20];
+	char buffer[BUFFERLENGTH];					//A buffer for recieving data
+	int bytes_read;								//A count for how many bytes were read
+	char* pch;									//A pointer used for tokenizing the recieved message
+	char username[CREDENTIALSLENGTH];			//Used to store the user's username
+	char password[CREDENTIALSLENGTH];			//Used to store the user's password
+	char authMsg[AUTHMESSAGELENGTH];			//Used to store the auth message
+	char listMsg[LISTMSGLENGTH];				//Used to store the list message
+	listMsg[0] = '\0';							//Nullterminate the list message at the first index (used for strcat) 
+	char listBody[LISTBODYLENGTH];				//Used to store the list Body
+	listBody[0] = '\0';							//Null terminate the list body so strcat can be used to create string
 
-  syslog(LOG_INFO, "Incoming connection from %s", hostname);
+	syslog(LOG_INFO, "Incoming connection from %s", hostname);
 
-  do
-  {
-    // Read up to 4095 bytes from the client
-    bytes_read = recv(connectionfd, buffer, sizeof(buffer) - 1, 0);
+	do
+	{
+		// Read up to 4095 bytes from the client
+		bytes_read = recv(connectionfd, buffer, sizeof(buffer) - 1, 0);
 
-    //Create a DB Connection
-    hdb_connection* dbConnection = hdb_connect(hostname);
+		//Create a DB Connection
+		hdb_connection* dbConnection = hdb_connect(hostname);
 
-    // If the data was read successfully
-    if (bytes_read > 0)
-    {
-      pch = strtok(buffer, "\n");
+		// If the data was read successfully
+		if (bytes_read > 0)
+		{
+			//Read in the first token of the string
+			pch = strtok(buffer, "\n");
 
-      while (pch != NULL)
-      {
-        if (strcmp(pch, "AUTH") == 0)
-        {
-          pch = strtok(NULL, "\n");
-          strcpy(username, pch+9);
+			//While there are still tokens remaining in the string
+			while (pch != NULL)
+			{
+				//Check if the first token (request type) was AUTH
+				if (strcmp(pch, "AUTH") == 0)
+				{
+					//If it was, read in the next line (username)
+					pch = strtok(NULL, "\n");
+					strcpy(username, pch + strlen("Username:"));
 
-          syslog(LOG_INFO, "Username: %s", username);
-          
-          pch = strtok(NULL, "\n");
-          strcpy(password, pch+9);
+					syslog(LOG_INFO, "Username: %s", username);
 
-          //Get the AuthToken
-          char* authToken = hdb_authenticate(dbConnection, username, password);
-          
-          //Check if AUTH is valid from 16-byte alphanumeric authentication token. NULL = Invalid. 
-          if (hdb_verify_token(dbConnection, authToken) != NULL)
-          {
-            syslog(LOG_DEBUG, "Authentication successful");
+					//Read in the next line, password and store
+					pch = strtok(NULL, "\n");
+					strcpy(password, pch + strlen("Password:"));
 
-            strcpy(authMsg, "200 Authentication successful\n");
-            strcat(authMsg, "Token:");
-            strcat(authMsg, authToken);
-            strcat(authMsg, "\n\n");
-          }
-          else
-          {
-            syslog(LOG_DEBUG, "Authentication unsuccessful");
-            strcpy(authMsg, "401 Unauthorized\n\n");
-          }
+					//Get the AuthToken
+					char* authToken = hdb_authenticate(dbConnection, username, password);
 
-          // Send the message
-          if (send(connectionfd, &authMsg, strlen(authMsg), 0) == -1)
-            err(EXIT_FAILURE, "%s", "Unable to send\n");
-        }
-        else if (strcmp(pch, "LIST") == 0)
-        {
-          syslog(LOG_INFO, "Receiving file list");
+					//Check if AUTH is valid from 16-byte alphanumeric authentication token. NULL = Invalid. 
+					if (hdb_verify_token(dbConnection, authToken) != NULL)
+					{
+						syslog(LOG_DEBUG, "Authentication successful");
 
-          pch = strtok(NULL, "\n");
-          
-		  if (hdb_verify_token(dbConnection, pch + 6) != NULL)
-		  {
-			  pch = strtok(NULL, "\n");
+						//Build the AUTH successful response 
+						strcpy(authMsg, "200 Authentication successful\n");
+						strcat(authMsg, "Token:");
+						strcat(authMsg, authToken);
+						strcat(authMsg, "\n\n");
+					}
+					else
+					{
+						//Prepare unsuccessful responnse 
+						syslog(LOG_DEBUG, "Authentication unsuccessful");
+						strcpy(authMsg, "401 Unauthorized\n\n");
+					}
 
-			  char lenBuffer[100];
-			  char filename[50];
-			  int currLen = 0;
-			  int totalLen = 0;
+					// Send the message
+					if (send(connectionfd, &authMsg, strlen(authMsg), 0) == -1)
+						err(EXIT_FAILURE, "%s", "Unable to send\n");
+				}
+				//If the first token indicated a LIST request
+				else if (strcmp(pch, "LIST") == 0)
+				{
+					syslog(LOG_INFO, "Receiving file list");
 
-			  strcpy(lenBuffer, pch + 7);
-			  lenBuffer[strlen(lenBuffer)] = '\0';
+					//read the next line (the token)
+					pch = strtok(NULL, "\n");
 
-			  totalLen = (int)strtol(lenBuffer, (char **)NULL, 10);
+					if (hdb_verify_token(dbConnection, pch + strlen("Token:")) != NULL)
+					{
+						pch = strtok(NULL, "\n");
 
-			  while ((currLen <= totalLen))
-			  {
-				  pch = strtok(NULL, "\n");
+						char lenBuffer[100];			//A place to store the length of the file line
+						char filename[50];				//A place to store the filename
+						int currLen = 0;				//Store the current amount of letters read in
+						int totalLen = 0;				//Store the total amount of letters expected
 
-				  if (pch == NULL) break;
+						//Extract the length key/value from the message
+						strcpy(lenBuffer, pch + strlen("Length:"));
+						lenBuffer[strlen(lenBuffer)] = '\0';
 
-				  currLen = currLen + strlen(pch) + 1;
-				  strcpy(filename, pch);
+						//Parse length read in into an int and store as expected total
+						totalLen = (int)strtol(lenBuffer, (char **)NULL, 10);
 
-				  if (hdb_file_exists(dbConnection, username, filename))
-				  {
-					  pch = strtok(NULL, "\n");
+						//Keep reading in data until expected total characters are reached
+						while ((currLen <= totalLen))
+						{
+							//Read in a line
+							pch = strtok(NULL, "\n");
 
-					  syslog(LOG_DEBUG, "* %s, %s", filename, pch);
+							//If its the last line, break out
+							if (pch == NULL) break;
 
-					  if (strcmp(pch, hdb_file_checksum(dbConnection, username, filename)))
-					  {
-						  continue;
-					  }
-					  else
-					  {
-						  //This file has changed
-						  strcat(listBody, filename);
-						  strcat(listBody, "\n");
-					  }
-				  }
-				  else
-				  {
-					  //Skip the checksum token for this file
-					  pch = strtok(NULL, "\n");
+							//Increment the current character counter (+1 at the end to account for \n character)
+							currLen = currLen + strlen(pch) + 1;
 
-					  syslog(LOG_DEBUG, "* %s, %s", filename, pch);
+							//Copy the current token in as the filename for the current file
+							strcpy(filename, pch);
 
-					  //This is a new file
-					  strcat(listBody, filename);
-					  strcat(listBody, "\n");
-				  }
-			  }
-		  }
-		  else
-		  {
-			  strcpy(listMsg, "401 Unauthorized\n\n");
-		  }
+							//Check if the file already exists
+							if (hdb_file_exists(dbConnection, username, filename))
+							{
+								//Read in the next line (checksum for file)
+								pch = strtok(NULL, "\n");
 
-		  //Remove last newline
-		  char *p = listBody;
-		  p[strlen(p) - 1] = 0;
+								syslog(LOG_DEBUG, "* %s, %s", filename, pch);
 
-		  sprintf(str, "%d", strlen(listBody));
+								//Check if checksum is equal to the file_checksum stored
+								if (strcmp(pch, hdb_file_checksum(dbConnection, username, filename)))
+								{
+									//If so do nothing and move to next file
+									continue;
+								}
+								else
+								{
+									//This file has changed, store it's name in files to be sent back in response
+									strcat(listBody, filename);
+									strcat(listBody, "\n");
+								}
+							}
+							else
+							{
+								//Skip the checksum token for this file
+								pch = strtok(NULL, "\n");
 
-		  if (str > 0)
-		  {
-			  syslog(LOG_INFO, "Requesting Files:\n%s", listBody);
+								syslog(LOG_DEBUG, "* %s, %s", filename, pch);
 
-			  //Files Changed/Requested (302)
-			  strcpy(listMsg, "302 Files requested\n");
-			  strcat(listMsg, "Length:");
-			  strcat(listMsg, str);
-			  strcat(listMsg, "\n\n");
-			  strcat(listMsg, listBody);
-		  }
-		  else
-		  {
-			  syslog(LOG_INFO, "Requesting No Files");
+								//This is a new file, store it's name in files to be sent back in response
+								strcat(listBody, filename);
+								strcat(listBody, "\n");
+							}
+						}
+					}
+					else
+					{
+						//If the user is unauthorized store that to send back
+						strcpy(listMsg, "401 Unauthorized\n\n");
+					}
 
-			  //No Files Changed/Requested (204)
-			  strcpy(listMsg, "204 No files requested\n\n");
-		  }
+					//Remove last newline because now allowed in specs
+					char *p = listBody;
+					p[strlen(p) - 1] = 0;
 
-          // Send the message
-          if (send(connectionfd, &listMsg, strlen(listMsg), 0) == -1)
-            err(EXIT_FAILURE, "%s", "Unable to send\n");
+					char str[20];				//Temporary string used to store 
 
-        }
-        pch = strtok(NULL, "\n");
-      }
-    }
-  } while (bytes_read > 0);
+					//Copy listBody's length into temp variable
+					sprintf(str, "%d", strlen(listBody));
+
+					//If the length is greater than zero generate a 302 request
+					if (str > 0)
+					{
+						syslog(LOG_INFO, "Requesting Files:\n%s", listBody);
+
+						//Files Changed/Requested (302)
+						strcpy(listMsg, "302 Files requested\n");
+						strcat(listMsg, "Length:");
+						strcat(listMsg, str);
+						strcat(listMsg, "\n\n");
+						strcat(listMsg, listBody);
+					}
+					else
+					{
+						syslog(LOG_INFO, "Requesting No Files");
+
+						//No Files Changed/Requested (204)
+						strcpy(listMsg, "204 No files requested\n\n");
+					}
+
+					// Send the message
+					if (send(connectionfd, &listMsg, strlen(listMsg), 0) == -1)
+						err(EXIT_FAILURE, "%s", "Unable to send\n");
+
+				}
+				pch = strtok(NULL, "\n");
+			}
+		}
+	} while (bytes_read > 0);
 
 	syslog(LOG_INFO, "Connection terminated");
 
@@ -200,13 +232,17 @@ void handle_connection(int connectionfd, char* hostname)
 	close(connectionfd);
 }
 
+// wait_for_connection(int sockfd)
+// This method waits for a connection on a specific socket and then connects to it when possible
+//
+// sockfd: The socket that is being listened too  
 int wait_for_connection(int sockfd)
 {
-	struct sockaddr_in client_addr; // Remote IP that is connecting to us
+	struct sockaddr_in client_addr;						// Remote IP that is connecting to us
 	unsigned int addr_len = sizeof(struct sockaddr_in); // Length of the remote IP structure
-	char ip_address[INET_ADDRSTRLEN]; // Buffer to store human-friendly IP address
-	int connectionfd; // Socket file descriptor for the new connection
-					  // Wait for a new connection
+	char ip_address[INET_ADDRSTRLEN];					// Buffer to store human-friendly IP address
+	int connectionfd;									// Socket file descriptor for the new connection
+														// Wait for a new connection
 
 	connectionfd = accept(sockfd, (struct sockaddr*)&client_addr, &addr_len);
 
