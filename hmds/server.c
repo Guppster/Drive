@@ -12,16 +12,16 @@ int main(int argc, char *argv[])
 	parseInput(argc, argv, options, false);
  
 	// We want to listen on the port specified on the command line
-	struct addrinfo* results = get_server_sockaddr(options[1]);
+	struct addrinfo* results = get_sockaddr(options[1], true);
 
 	// Create a listening socket
-	int sockfd = bind_socket(results);
+	int sockfd = connection(results, true);
 
 	// Start listening on the socket
 	if (listen(sockfd, BACKLOG) == -1)
 		err(EXIT_FAILURE, "%s", "Unable to listen on socket");
   
-  syslog(LOG_INFO, "Server listening on port %s", options[1]);
+    syslog(LOG_INFO, "Server listening on port %s", options[1]);
 
 	// Wait for a connection
 	int connectionfd = wait_for_connection(sockfd);
@@ -107,7 +107,6 @@ void handle_connection(int connectionfd, char* hostname)
 
 			  char lenBuffer[100];
 			  char filename[50];
-			  char str[100];
 			  int currLen = 0;
 			  int totalLen = 0;
 
@@ -199,74 +198,6 @@ void handle_connection(int connectionfd, char* hostname)
 
 	// Close the connection
 	close(connectionfd);
-}
-
-struct addrinfo* get_server_sockaddr(const char* port)
-{
-	struct addrinfo hints;
-	struct addrinfo* results;
-
-	memset(&hints, 0, sizeof(struct addrinfo));
-
-	hints.ai_family = AF_INET; // Return socket addresses for our local IPv4 addresses
-	hints.ai_socktype = SOCK_STREAM; // Return TCP socket addresses
-	hints.ai_flags = AI_PASSIVE; // Socket addresses should be for listening sockets
-
-	int retval = getaddrinfo(NULL, port, &hints, &results);
-
-	if (retval)
-		errx(EXIT_FAILURE, "%s", gai_strerror(retval));
-	return results;
-}
-
-int bind_socket(struct addrinfo* addr_list)
-{
-	struct addrinfo* addr;
-	int sockfd;
-	char yes = '1';
-	// Iterate through each addrinfo in the list; stop when we successfully bind
-	// to one
-	for (addr = addr_list; addr != NULL; addr = addr->ai_next)
-	{
-
-		// Open a socket
-		sockfd = socket(addr->ai_family, addr->ai_socktype, addr->ai_protocol);
-
-		// Try the next address if we couldn't open a socket
-		if (sockfd == -1)
-			continue;
-
-		// Allow the port to be re-used if currently in the TIME_WAIT state
-		if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) == -1)
-			err(EXIT_FAILURE, "%s", "Unable to set socket option");
-
-		// Try to bind the socket to the address/port
-		if (bind(sockfd, addr->ai_addr, addr->ai_addrlen) == -1)
-		{
-			// If binding fails, close the socket, and move on to the next address
-			close(sockfd);
-			continue;
-		}
-		else
-		{
-			// Otherwise, we've bound the address to the socket, so stop processing
-			break;
-		}
-	}
-
-	// Free the memory allocated to the address list
-	freeaddrinfo(addr_list);
-
-	// If addr is NULL, we tried every address and weren't able to bind to any
-	if (addr == NULL)
-	{
-		err(EXIT_FAILURE, "%s", "Unable to bind");
-	}
-	else
-	{
-		// Otherwise, return the socket descriptor
-		return sockfd;
-	}
 }
 
 int wait_for_connection(int sockfd)

@@ -48,10 +48,10 @@ int main(int argc, char *argv[])
 	char *p = body;
 	p[strlen(p) - 1] = 0;
 
-  //Connect to the server
+    //Connect to the server
 	syslog(LOG_INFO, "Connecting to server");
-	struct addrinfo* results = get_sockaddr(options[2], options[3]);
-	int sockfd = open_connection(results);
+	struct addrinfo* results = get_sockaddr(options[3], false);
+	int sockfd = connection(results, false);
 
 	//Issue an AUTH request
 	char authMsg[strlen("AUTH\n") + strlen("username:") + sizeof(options[0]) + strlen("\n") + strlen("password:") + sizeof(options[1]) + strlen("\n\n")];
@@ -65,22 +65,13 @@ int main(int argc, char *argv[])
 	strcat(authMsg, options[1]);
 	strcat(authMsg, "\n\n");
 
-	char bufferA[500]; // Buffer to store received message, leaving space for the NULL terminator
+	char bufferAuthRequest[500]; // Buffer to store received message, leaving space for the NULL terminator
 	
 	syslog(LOG_DEBUG, "Sending Credentials");
 
-	// Send the message
-	if (send(sockfd, &authMsg, strlen(authMsg), 0) == -1)
-		err(EXIT_FAILURE, "%s", "Unable to send");
+	sendToServer(sockfd, authMsg, bufferAuthRequest);
 	
-	// Read the reply
-	int bytes_readA = recv(sockfd, bufferA, sizeof(bufferA) - 1, 0);
-
-	//Check if reply is valid
-	if (bytes_readA == -1)
-		err(EXIT_FAILURE, "%s", "Unable to read");
-	
-	if (strncmp(bufferA, "200", 3) != 0)
+	if (strncmp(bufferAuthRequest, "200", 3) != 0)
 	{
 		syslog(LOG_INFO, "Connecting Failed");
 		exit(EXIT_FAILURE);
@@ -88,98 +79,54 @@ int main(int argc, char *argv[])
 
 	syslog(LOG_INFO, "Authentication successful");
 
-	token = strstr(bufferA, "Token:");
-	token[strlen(token) - 2] = '\0';
+	token = strstr(bufferAuthRequest, "Token:");
+	token[strlen(token) - 1] = '\0';
+
+	//Obtain the length of the body and store it in str (temp variable)
+	sprintf(str, "%d", strlen(body));
 
 	//Send the list of files/checksums in a LIST request to the server. 
 	//Create a LIST request
+	char msgList[strlen("LIST\n") + strlen("Token:") + sizeof(token) + strlen("\n") + strlen("Length:") + sizeof(str) + strlen("\n\n") + sizeof(body)];
 
-	sprintf(str, "%d", strlen(body));
+	strcpy(msgList, "LIST\n");
 
-	char listMsg[strlen("LIST\n") + strlen("Token:") + sizeof(token) + strlen("\n") + strlen("Length:") + sizeof(str) + strlen("\n\n") + sizeof(body)];
+	strcat(msgList, token);
 
-	strcpy(listMsg, "LIST\n");
+	strcat(msgList, "Length:");
 
-	strcat(listMsg, token);
-	strcat(listMsg, "\n");
-
-	strcat(listMsg, "Length:");
-
-	strcat(listMsg, str);
-	strcat(listMsg, "\n\n");
+	strcat(msgList, str);
+	strcat(msgList, "\n\n");
 	
-	strcat(listMsg, body);
+	strcat(msgList, body);
 
-	char bufferB[10000]; // Buffer to store received message, leaving space for the NULL terminator
+	// Buffer to store received message, leaving space for the NULL terminator
+	char bufferListRequest[10000]; 
 
-  syslog(LOG_INFO, "Uploading file list");
+    syslog(LOG_INFO, "Uploading file list");
 
-	// Send the message
-	if (send(sockfd, &listMsg, strlen(listMsg), 0) == -1)
-		err(EXIT_FAILURE, "%s", "Unable to send");
+	sendToServer(sockfd, msgList, bufferListRequest);;
 
-	// Read the reply
-	int bytes_readB = recv(sockfd, bufferB, sizeof(bufferB) - 1, 0);
-
-	//Check if reply is valid
-	if (bytes_readB == -1)
-		err(EXIT_FAILURE, "%s", "Unable to read");
-
-  syslog(LOG_INFO, "Server requested the following files:\n%s", strstr(bufferB, "\n\n") + 2);
+    syslog(LOG_INFO, "Server requested the following files:\n%s", strstr(bufferListRequest, "\n\n") + 2);
 
 	// Close the connection
 	close(sockfd);
-
+	
 	//Print the list of files requested by the server. If the server requests no files, print an appropriate message.
 	exit(EXIT_SUCCESS);
 
 }//End of main method
 
-struct addrinfo* get_sockaddr(const char* hostname, const char* port)
+void sendToServer(int sockfd, char* msg, char* buffer)
 {
-	struct addrinfo hints;
-	struct addrinfo* results;
+	// Send the message
+	if (send(sockfd, msg, strlen(msg), 0) == -1)
+		err(EXIT_FAILURE, "%s", "Unable to send");
 
-	memset(&hints, 0, sizeof(struct addrinfo));
+	// Read the reply
+	int bytes_read = recv(sockfd, buffer, 10000, 0);
 
-	//Return socket addresses for the server's IPv4 addresses
-	hints.ai_family = AF_INET; 
-	
-	//Return TCP socket addresses
-	hints.ai_socktype = SOCK_STREAM;
-	
-	int retval = getaddrinfo(NULL, port, &hints, &results);
-	
-	if (retval) errx(EXIT_FAILURE, "%s", gai_strerror(retval));
-	
-	return results;
-}
-
-int open_connection(struct addrinfo* addr_list)
-{
-	struct addrinfo* addr;
-	int sockfd;
-
-	//Iterate through each addrinfo in the list; stop when we successfully
-	//connect to one
-	for (addr = addr_list; addr != NULL; addr = addr->ai_next)
-	{
-		//Open a socket
-		sockfd = socket(addr->ai_family, addr->ai_socktype, addr->ai_protocol);
-
-		//Try the next address if we couldn't open a socket
-		if (sockfd == -1) continue;
-
-		//Stop iterating if we're able to connect to the server
-		if (connect(sockfd, addr->ai_addr, addr->ai_addrlen) != -1) break;
-	}
-
-	//Free the memory allocated to the addrinfo list
-	freeaddrinfo(addr_list);
-
-	//If addr is NULL, we tried every addrinfo and weren't able to connect to any
-	if (addr == NULL)
-		err(EXIT_FAILURE, "%s", "Unable to connect");
-	else
-		return sockfd;
-}
+	//Check if reply is valid
+	if (bytes_read == -1)
+		err(EXIT_FAILURE, "%s", "Unable to read");
+}//End of sendToServer method
