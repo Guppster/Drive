@@ -17,6 +17,7 @@ int main(int argc, char *argv[])
 	char body[LISTBODYLENGTH];				//Declare a char array to hold the body of the list message
 	body[0] = '\0';						//Null terminate the char array at the first index (to allow strcat to work)
 	char str[TEMPSTRLENGTH] = "";				//Declare a temporary string called STR to store checksum/length of body
+	int nextSeq = 0;
 
 	//Parse the inputs from the command line and populate the options array
 	parseInput(argc, argv, options, 0);
@@ -100,14 +101,10 @@ int main(int argc, char *argv[])
 	//Obtain the length of the body and store it in str (temp variable)
 	sprintf(str, "%d", strlen(body));
 
-	//Send the list of files/checksums in a LIST request to the server. 
 	//Create a LIST request
 	char msgList[strlen("LIST\n") + strlen("Token:") + sizeof(token) + strlen("\n") + strlen("Length:") + sizeof(str) + strlen("\n\n") + sizeof(body)];
 
-	//Concatinate the Header
-	//Concatinate the token line extracted earlier
-	//Concatinte the length and end Header
-	//Concatinate the body with the header
+	//Concatinate the Header, token, length and end header. Then concatinate body with header.
 	sprintf(msgList, "LIST\n%sLength:%s\n\n%s", token, str, body);
 
 	//Buffer to store received message, leaving space for the NULL terminator
@@ -147,3 +144,18 @@ void sendToServer(int sockfd, char* msg, char* buffer)
 	if (bytes_read == -1)
 		err(EXIT_FAILURE, "%s", "Unable to read");
 }//End of sendToServer method
+
+void sendFiles(char filelist)
+{
+	//Send a type 1 control message with the nextSeq number and the rest of the files details
+
+	//If the server's response contains an error, print an error message (token invalid)
+
+	//Send the data message containing the first chunk of the file, and wait for the approperiate ACK
+
+	//If there is more data, increment dataSeq and loop ^
+
+	//If there is another file to send, increment nextSeq and loop ^^ 	
+	
+	//Once all files have been transmitted send a type 2 control message and wait for an ACK
+}
