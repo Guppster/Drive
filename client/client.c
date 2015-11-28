@@ -13,10 +13,10 @@ int main(int argc, char *argv[])
 	openlog("client", LOG_PERROR | LOG_PID | LOG_NDELAY, LOG_USER);
 
 	char* options[5] = { 0 };				//Declare an array of 5 options to be read in from command line
-	char* token;							//Declare a char array for the token
+	char* token;						//Declare a char array for the token
 	char body[LISTBODYLENGTH];				//Declare a char array to hold the body of the list message
-	body[0] = '\0';							//Null terminate the char array at the first index (to allow strcat to work)
-	char str[TEMPSTRLENGTH] = "";			//Declare a temporary string called STR to store checksum/length of body
+	body[0] = '\0';						//Null terminate the char array at the first index (to allow strcat to work)
+	char str[TEMPSTRLENGTH] = "";				//Declare a temporary string called STR to store checksum/length of body
 
 	//Parse the inputs from the command line and populate the options array
 	parseInput(argc, argv, options, 0);
@@ -70,14 +70,10 @@ int main(int argc, char *argv[])
 	strcpy(authMsg, "AUTH\n");
 
 	//Concatinate the username into the AUTH message
-	strcat(authMsg, "username:");
-	strcat(authMsg, options[0]);
-	strcat(authMsg, "\n");
+	sprintf(authMsg, "Username:%s\n", options[0]);
 
 	//Concatinate the password into the AUTH message
-	strcat(authMsg, "password:");
-	strcat(authMsg, options[1]);
-	strcat(authMsg, "\n\n");
+	sprintf(authMsg, "Password:%s\n\n", options[1];
 
 	//Buffer to store received message, leaving space for the NULL terminator
 	char bufferAuthRequest[AUTHBUFFERLENGTH];
@@ -109,28 +105,20 @@ int main(int argc, char *argv[])
 	char msgList[strlen("LIST\n") + strlen("Token:") + sizeof(token) + strlen("\n") + strlen("Length:") + sizeof(str) + strlen("\n\n") + sizeof(body)];
 
 	//Concatinate the Header
-	strcpy(msgList, "LIST\n");
-
 	//Concatinate the token line extracted earlier
-	strcat(msgList, token);
-
 	//Concatinte the length and end Header
-	strcat(msgList, "Length:");
-	strcat(msgList, str);
-	strcat(msgList, "\n\n");
-	
 	//Concatinate the body with the header
-	strcat(msgList, body);
+	sprintf(msgList, "LIST\n%sLength:%s\n\n%s", token, str, body);
 
 	//Buffer to store received message, leaving space for the NULL terminator
 	char bufferListRequest[LISTBUFFERLENGTH];
 
-    syslog(LOG_INFO, "Uploading file list");
+	syslog(LOG_INFO, "Uploading file list");
 
 	//Send the LIST request to the server
 	sendToServer(sockfd, msgList, bufferListRequest);;
 
-    syslog(LOG_INFO, "Server requested the following files:\n%s", strstr(bufferListRequest, "\n\n") + 2);
+    	syslog(LOG_INFO, "Server requested the following files:\n%s", strstr(bufferListRequest, "\n\n") + 2);
 
 	// Close the connection
 	close(sockfd);

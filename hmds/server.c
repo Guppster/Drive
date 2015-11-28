@@ -40,16 +40,16 @@ int main(int argc, char *argv[])
 
 void handle_connection(int connectionfd, char* hostname)
 {
-	char buffer[BUFFERLENGTH];					//A buffer for recieving data
-	int bytes_read;								//A count for how many bytes were read
-	char* pch;									//A pointer used for tokenizing the recieved message
+	char buffer[BUFFERLENGTH];				//A buffer for recieving data
+	int bytes_read;						//A count for how many bytes were read
+	char* pch;						//A pointer used for tokenizing the recieved message
 	char username[CREDENTIALSLENGTH];			//Used to store the user's username
 	char password[CREDENTIALSLENGTH];			//Used to store the user's password
 	char authMsg[AUTHMESSAGELENGTH];			//Used to store the auth message
 	char listMsg[LISTMSGLENGTH];				//Used to store the list message
-	listMsg[0] = '\0';							//Nullterminate the list message at the first index (used for strcat) 
+	listMsg[0] = '\0';					//Nullterminate the list message at the first index (used for strcat) 
 	char listBody[LISTBODYLENGTH];				//Used to store the list Body
-	listBody[0] = '\0';							//Null terminate the list body so strcat can be used to create string
+	listBody[0] = '\0';					//Null terminate the list body so strcat can be used to create string
 
 	syslog(LOG_INFO, "Incoming connection from %s", hostname);
 
@@ -92,10 +92,7 @@ void handle_connection(int connectionfd, char* hostname)
 						syslog(LOG_DEBUG, "Authentication successful");
 
 						//Build the AUTH successful response 
-						strcpy(authMsg, "200 Authentication successful\n");
-						strcat(authMsg, "Token:");
-						strcat(authMsg, authToken);
-						strcat(authMsg, "\n\n");
+						sprintf(authMsg, "200 Authentication successful\nToken:%s\n\n", authToken);
 					}
 					else
 					{
@@ -164,8 +161,7 @@ void handle_connection(int connectionfd, char* hostname)
 								else
 								{
 									//This file has changed, store it's name in files to be sent back in response
-									strcat(listBody, filename);
-									strcat(listBody, "\n");
+									sprintf(listBody, "%s\n", filename);
 								}
 							}
 							else
@@ -176,8 +172,7 @@ void handle_connection(int connectionfd, char* hostname)
 								syslog(LOG_DEBUG, "* %s, %s", filename, pch);
 
 								//This is a new file, store it's name in files to be sent back in response
-								strcat(listBody, filename);
-								strcat(listBody, "\n");
+								sprintf(listBody, "%s\n", filename);
 							}
 						}
 					}
@@ -202,11 +197,7 @@ void handle_connection(int connectionfd, char* hostname)
 						syslog(LOG_INFO, "Requesting Files:\n%s", listBody);
 
 						//Files Changed/Requested (302)
-						strcpy(listMsg, "302 Files requested\n");
-						strcat(listMsg, "Length:");
-						strcat(listMsg, str);
-						strcat(listMsg, "\n\n");
-						strcat(listMsg, listBody);
+						sprintf(listMsg, "302 Files requested\nLength:%s\n\n%s", str, listBody);
 					}
 					else
 					{
@@ -239,10 +230,10 @@ void handle_connection(int connectionfd, char* hostname)
 int wait_for_connection(int sockfd)
 {
 	struct sockaddr_in client_addr;						// Remote IP that is connecting to us
-	unsigned int addr_len = sizeof(struct sockaddr_in); // Length of the remote IP structure
+	unsigned int addr_len = sizeof(struct sockaddr_in); 			// Length of the remote IP structure
 	char ip_address[INET_ADDRSTRLEN];					// Buffer to store human-friendly IP address
-	int connectionfd;									// Socket file descriptor for the new connection
-														// Wait for a new connection
+	int connectionfd;							// Socket file descriptor for the new connection
+										// Wait for a new connection
 
 	connectionfd = accept(sockfd, (struct sockaddr*)&client_addr, &addr_len);
 
