@@ -5,7 +5,11 @@
 #include <syslog.h>
 #include <err.h>
 
-void parseInput(int argc, char *argv[], char* result[], bool isClient)
+// correct config for each type
+// *0 = client = 	{username, password, server, port, dir, fserver, fport}
+// *1 = hdb server = 	{server, port}
+// *2 = hftpd server = 	{redis, port, dir, timewait}
+void parseInput(int argc, char *argv[], char* result[], int type)
 {
 	int c;
 	int verbose_flag = 0;
@@ -13,7 +17,7 @@ void parseInput(int argc, char *argv[], char* result[], bool isClient)
 	/* getopt_long stores the option index here. */
 	int option_index = 0;
 
-	if (isClient)
+	if (type == 0)
 	{
 		struct option long_options1[] =
 		{
@@ -26,9 +30,9 @@ void parseInput(int argc, char *argv[], char* result[], bool isClient)
 			{ 0, 0, 0, 0 }
 		};
 
-		c = getopt_long(argc, argv, "vs:d:p:", long_options1, &option_index);
+		c = getopt_long(argc, argv, "vs:d:p:f:o:", long_options1, &option_index);
 	}
-	else
+	else if(type == 1)
 	{
 		struct option long_options2[] =
 		{
@@ -40,6 +44,21 @@ void parseInput(int argc, char *argv[], char* result[], bool isClient)
 
 		c = getopt_long(argc, argv, "vs:p:", long_options2, &option_index);
 	}
+	else if(type == 2)
+	{
+		struct option long_options3[] =
+		{
+			{ "verbose", no_argument, &verbose_flag, 1 },
+			{ "redis", required_argument, 0, 'r' },
+			{ "port", required_argument, 0, 'p' },
+			{ "dir", required_argument, 0, 'd' },
+			{ "timewait", required_argument, 0, 't' },
+
+			{ 0, 0, 0, 0 }
+		};
+
+		c = getopt_long(argc, argv, "vr:p:d:t:", long_options2, &option_index);
+	}
 
 	switch (c)
 	{
@@ -48,18 +67,26 @@ void parseInput(int argc, char *argv[], char* result[], bool isClient)
 		break;
 
 	case 's':
-		if (isClient)
+		if (type == 0)
 			result[2] = optarg;
 		else
 			result[0] = optarg;
 		break;
 
 	case 'd':
-		result[4] = optarg;
+		if(type == 0)
+		{
+			result[4] = optarg;
+		}
+		else if(type == 2)
+		{
+			result[3] = optarg;
+		}		
+
 		break;
 
 	case 'p':
-		if (isClient)
+		if (type == 0)
 			result[3] = optarg;
 		else
 			result[1] = optarg;
@@ -71,7 +98,7 @@ void parseInput(int argc, char *argv[], char* result[], bool isClient)
 		break;
 	}
 
-	if (isClient)
+	if (type == 0)
 	{
 		if (optind == argc - 2)
 		{
@@ -110,7 +137,7 @@ void parseInput(int argc, char *argv[], char* result[], bool isClient)
 			result[6] = "10000";
 		}
 	}
-	else
+	else if(type == 1)
 	{
 		if (result[0] == 0)
 		{
