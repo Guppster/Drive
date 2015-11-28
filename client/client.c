@@ -19,7 +19,7 @@ int main(int argc, char *argv[])
 	char str[TEMPSTRLENGTH] = "";			//Declare a temporary string called STR to store checksum/length of body
 
 	//Parse the inputs from the command line and populate the options array
-	parseInput(argc, argv, options, true);
+	parseInput(argc, argv, options, 0);
 
 	syslog(LOG_INFO, "Scanning Hooli directory: %s", options[4]);
 

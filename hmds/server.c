@@ -16,7 +16,7 @@ int main(int argc, char *argv[])
 	char* options[2] = { 0 };
 
 	//Parse the inputs from the command line and populate the options array
-	parseInput(argc, argv, options, false);
+	parseInput(argc, argv, options, 1);
  
 	// We want to listen on the port specified on the command line
 	struct addrinfo* results = get_sockaddr(options[1], true);
