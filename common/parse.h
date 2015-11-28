@@ -149,6 +149,28 @@ void parseInput(int argc, char *argv[], char* result[], int type)
 			result[1] = "9000";
 		}
 	}
+	else if(type == 2)
+	{
+		if(result [0] == 0)
+		{
+			result[0] = "10000";
+		}
+
+		if(result [1] == 0)
+		{
+			result[1] = "localhost";
+		}
+
+		if(result [2] == 0)
+		{
+			result[2] = "/tmp/hftpd";
+		}
+
+		if(result [3] == 0)
+		{
+			result[3] = "10";
+		}
+	}
 
   if(verbose_flag == 0)
   {
