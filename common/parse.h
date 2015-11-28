@@ -21,6 +21,8 @@ void parseInput(int argc, char *argv[], char* result[], bool isClient)
 			{ "server", required_argument, 0, 's' },
 			{ "dir", required_argument, 0, 'd' },
 			{ "port", required_argument, 0, 'p' },
+			{ "fserver", required_argument, 0, 'f' },
+			{ "fport", required_argument, 0, 'o' },
 			{ 0, 0, 0, 0 }
 		};
 
@@ -96,6 +98,16 @@ void parseInput(int argc, char *argv[], char* result[], bool isClient)
 		if (result[4] == 0)
 		{
 			result[4] = "/hooli";
+		}
+	
+		if (result[5] == 0)
+		{
+			result[5] = "localhost";
+		}
+	
+		if (result[6] == 0)
+		{
+			result[6] = "10000";
 		}
 	}
 	else
