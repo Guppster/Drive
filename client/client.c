@@ -147,7 +147,19 @@ void sendToServer(int sockfd, char* msg, char* buffer)
 
 void sendFiles(char filelist)
 {
+	char* token;
+	token = strtok(filelist, "\n");
+
 	//Send a type 1 control message with the nextSeq number and the rest of the files details
+
+	msg = createControlMessage();
+	msg->type = 1;
+	msg->numSeq = 0;
+	msg->length = strlen(token);
+	msg->fileSize =  0;
+	msg->checksum = 0;
+	msg->token = 0;
+	msg->filename = "";
 
 	//If the server's response contains an error, print an error message (token invalid)
 
@@ -159,3 +171,9 @@ void sendFiles(char filelist)
 	
 	//Once all files have been transmitted send a type 2 control message and wait for an ACK
 }
+
+msgCtrl* createControlMessage()
+{
+	return (msgCtrl*)malloc(sizeof(msgCtrl));
+}
+

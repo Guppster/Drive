@@ -1,37 +1,28 @@
 CC=gcc
-CFLAGS=-Wall -Werror -std=gnu11 -g -c
+CFLAGS=-Wall -Werror -g -c
 LFLAGS=-Wall -Werror -g
 
-all: fig5-3 fig5-4 fig5-5 server client
+all: client1 client2 client3 server1 server2 server3 endian poll
 
-fig5-3: fig5-3.o udp_sockets.o udp_server.o
+client%: client%.o udp_sockets.o udp_client.o
 	$(CC) $(LFLAGS) -o $@ $^
 
-fig5-4: fig5-4.o udp_sockets.o udp_server.o
+server%: server%.o udp_sockets.o udp_server.o
 	$(CC) $(LFLAGS) -o $@ $^
 
-fig5-5: fig5-5.o udp_sockets.o udp_server.o
+endian: endian.c
 	$(CC) $(LFLAGS) -o $@ $^
 
-server: server.o udp_sockets.o udp_server.o
+poll: poll.o udp_sockets.o udp_server.o
 	$(CC) $(LFLAGS) -o $@ $^
 
-client: client.o udp_sockets.o udp_client.o
-	$(CC) $(LFLAGS) -o $@ $^
-
-fig5-3.o: fig5-3.c udp_server.h udp_sockets.h
+client%.o: client%.c udp_client.h udp_sockets.h
 	$(CC) $(CFLAGS) -o $@ $<
 
-fig5-4.o: fig5-4.c udp_server.h udp_sockets.h
+server%.o: server%.c udp_server.h udp_sockets.h
 	$(CC) $(CFLAGS) -o $@ $<
 
-fig5-5.o: fig5-5.c udp_server.h udp_sockets.h
-	$(CC) $(CFLAGS) -o $@ $<
-
-server.o: server.c udp_server.h udp_sockets.h
-	$(CC) $(CFLAGS) -o $@ $<
-
-client.o: client.c udp_client.h udp_sockets.h
+poll.o: poll.c udp_server.h udp_sockets.h
 	$(CC) $(CFLAGS) -o $@ $<
 
 udp_sockets.o: udp_sockets.c udp_sockets.h
@@ -44,5 +35,5 @@ udp_client.o: udp_client.c udp_client.h udp_sockets.h
 	$(CC) $(CFLAGS) -o $@ $<
 
 clean:
-	rm -f *.o fig5-3 fig5-4 fig5-5 server client
+	rm -f *.o client[1-3] server[1-3] endian poll
 
