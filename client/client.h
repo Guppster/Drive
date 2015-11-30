@@ -4,6 +4,8 @@
 #include <hfs.h>
 #include "../common/parse.h"
 #include "../common/networking.h"
+#include "../common/ctrl_message.h"
+#include "../common/udp_client.h"
 
 #define LISTBODYLENGTH 10000
 #define AUTHBUFFERLENGTH 50

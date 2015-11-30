@@ -145,25 +145,30 @@ void sendToServer(int sockfd, char* msg, char* buffer)
 		err(EXIT_FAILURE, "%s", "Unable to read");
 }//End of sendToServer method
 
-void sendFiles(char filelist)
+void sendFiles(char* filelist, char* address, char* port)
 {
+	host server;            // Address of the server
+  	ctrl_message* response; // Response returned by the server
+
+  	//Create a socket to listen on port 5000
+  	int sockfd = create_client_socket(address, port, &server);
+	
 	char* token;
 	token = strtok(filelist, "\n");
 
 	//Send a type 1 control message with the nextSeq number and the rest of the files details
+	message* ctrlMsg = createCtrlMessage(1, token)
 
-	msg = createControlMessage();
-	msg->type = 1;
-	msg->numSeq = 0;
-	msg->length = strlen(token);
-	msg->fileSize =  0;
-	msg->checksum = 0;
-	msg->token = 0;
-	msg->filename = "";
+	//Send it and free its memory
+  	send_message(sockfd, ctrlMsg, &server);
+  	free(request);
 
-	//If the server's response contains an error, print an error message (token invalid)
-
+	response = (ctrl_message*)receive_message(sockfd, &server);
+  	response->sum = ntohl(response->sum);
+   	
 	//Send the data message containing the first chunk of the file, and wait for the approperiate ACK
+	
+	//If the server's response contains an error, print an error message (token invalid)
 
 	//If there is more data, increment dataSeq and loop ^
 
@@ -172,8 +177,16 @@ void sendFiles(char filelist)
 	//Once all files have been transmitted send a type 2 control message and wait for an ACK
 }
 
-msgCtrl* createControlMessage()
-{
-	return (msgCtrl*)malloc(sizeof(msgCtrl));
-}
+message* createCtrlMessage(int type, char* filename)
+{		
+	msgCtrl* msg = (ctrlMsg*)create_message();
+	msg->type = 1;
+	msg->numSeq = 0;
+	msg->length = strlen(filename);
+	msg->fileSize =  0;
+	msg->checksum = 0;
+	msg->token = 0;
+	msg->filename = filename;
 
+	return (message*)msg;
+}
