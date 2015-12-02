@@ -12,11 +12,11 @@ int main(int argc, char *argv[])
 	//Open a syslog for logging purposes
 	openlog("client", LOG_PERROR | LOG_PID | LOG_NDELAY, LOG_USER);
 
-	char* options[5] = { 0 };				//Declare an array of 5 options to be read in from command line
+	char* options[7] = { 0 };			//Declare an array of 7 options to be read in from command line
 	char* token;						//Declare a char array for the token
-	char body[LISTBODYLENGTH];				//Declare a char array to hold the body of the list message
+	char body[LISTBODYLENGTH];			//Declare a char array to hold the body of the list message
 	body[0] = '\0';						//Null terminate the char array at the first index (to allow strcat to work)
-	char str[TEMPSTRLENGTH] = "";				//Declare a temporary string called STR to store checksum/length of body
+	char str[TEMPSTRLENGTH] = "";		//Declare a temporary string called STR to store checksum/length of body
 	int nextSeq = 0;
 
 	//Parse the inputs from the command line and populate the options array
@@ -115,7 +115,9 @@ int main(int argc, char *argv[])
 	//Send the LIST request to the server
 	sendToServer(sockfd, msgList, bufferListRequest);;
 
-    	syslog(LOG_INFO, "Server requested the following files:\n%s", strstr(bufferListRequest, "\n\n") + 2);
+    syslog(LOG_INFO, "Server requested the following files:\n%s", strstr(bufferListRequest, "\n\n") + 2);
+
+	sendFiles(bufferListRequest, options[5], options[6]);
 
 	// Close the connection
 	close(sockfd);
@@ -161,7 +163,7 @@ void sendFiles(char* filelist, char* address, char* port)
 
 	//Send it and free its memory
   	send_message(sockfd, ctrlMsg, &server);
-  	free(request);
+  	free(ctrlMsg);
 
 	response = (ctrl_message*)receive_message(sockfd, &server);
   	response->sum = ntohl(response->sum);
