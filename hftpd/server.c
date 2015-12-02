@@ -9,7 +9,7 @@
 #include "../common/udp_sockets.h"
 #include "../common/udp_server.h"
 
-message* create_response_message(ctrl_message* request)
+message* create_ctrl_response_message(ctrl_message* request)
 {
   int i;
 
@@ -25,22 +25,43 @@ int main(int argc, char *argv[])
   ctrl_message* request;			// Client's request message
   message* response;				// Server response message
   host client;						// Client's address
-  char* options[4] = { 0 };			//Declare an array of 4 options to be read in from command line
+  char* options[4] = { 0 };			// Declare an array of 4 options to be read in from command line
+  int expectedSeqNum = 0;
 
   parseInput(argc, argv, options, 2);
 
   // Create a socket to listen on port 5000
   int sockfd = create_server_socket(options[1]);
 
-  // Read the request message and generate the response
-  request = (calc_message*)receive_message(sockfd, &client);
-  response = create_response_message(request);
+  do
+  {
+	  // Read the request message and generate the response
+	  request = (calc_message*)receive_message(sockfd, &client);
 
-  // Send the response and free the memory allocated to the messages
-  send_message(sockfd, response, &client);
-  free(request);
-  free(response);
+	  //if ((read in seqNum) != expectedSeqNum)
+	  //{
+	  //  continue;
+	  //}
 
+	  //close previous file
+
+	  //update metadata
+
+	  //open new file
+
+	  //ACK(seq)
+
+	  //expectedSeqNum = !expectedSeqNum
+
+	  response = create_ctrl_response_message(request);
+
+	  // Send the response and free the memory allocated to the messages
+	  send_message(sockfd, response, &client);
+	  free(request);
+	  free(response);
+  
+  } while (true);
+  
   // Close the socket
   close(sockfd);
 
