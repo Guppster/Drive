@@ -17,7 +17,7 @@ int main(int argc, char *argv[])
 	char body[LISTBODYLENGTH];			//Declare a char array to hold the body of the list message
 	body[0] = '\0';						//Null terminate the char array at the first index (to allow strcat to work)
 	char str[TEMPSTRLENGTH] = "";		//Declare a temporary string called STR to store checksum/length of body
-	int nextSeq = 0;
+	//int nextSeq = 0;
 
 	//Parse the inputs from the command line and populate the options array
 	parseInput(argc, argv, options, 0);
@@ -150,7 +150,7 @@ void sendToServer(int sockfd, char* msg, char* buffer)
 void sendFiles(char* filelist, char* address, char* port, char* token, hfs_entry* listRoot)
 {
 	host server;            // Address of the server
-  	ctrl_message* response; // Response returned by the server
+  	//ctrl_message* response; // Response returned by the server
 
   	//Create a socket to listen on port 5000
   	int sockfd = create_client_socket(address, port, &server);
@@ -165,8 +165,8 @@ void sendFiles(char* filelist, char* address, char* port, char* token, hfs_entry
   	send_message(sockfd, ctrlMsg, &server);
   	free(ctrlMsg);
 
-	response = (ctrl_message*)receive_message(sockfd, &server);
-   	
+	//response = (ctrl_message*)receive_message(sockfd, &server);
+
 	//Send the data message containing the first chunk of the file, and wait for the approperiate ACK
 	
 	//If the server's response contains an error, print an error message (token invalid)
@@ -207,13 +207,13 @@ void getDetails(char* filename, long details[], hfs_entry* listRoot)
 		if (strcmp(current->rel_path, filename))
 		{
 			details[0] = current->crc32;
+			details[1] = getFilesize(current->abs_path);
 		}
 
 		//Move on to the next file
 		current = current->next;
 	} while (current != NULL);
 
-	details[1] = getFilesize(filename);
 }//End of getDetails method
 
 long getFilesize(char* filename)
