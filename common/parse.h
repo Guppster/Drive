@@ -153,7 +153,7 @@ void parseInput(int argc, char *argv[], char* result[], int type)
 	{
 		if(result [0] == 0)
 		{
-			result[0] = "10000";
+			result[0] = "5000";
 		}
 
 		if(result [1] == 0)

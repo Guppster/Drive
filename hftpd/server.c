@@ -32,7 +32,7 @@ int main(int argc, char *argv[])
   parseInput(argc, argv, options, 2);
 
   // Create a socket to listen on port 5000
-  int sockfd = create_server_socket(options[1]);
+  int sockfd = create_server_socket(options[0]);
 
   //For every file do this
   do
