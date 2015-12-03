@@ -8,10 +8,11 @@
 #include "../common/control_message.h"
 #include "../common/udp_sockets.h"
 #include "../common/udp_server.h"
+#include "../common/parse.h"
 
 message* create_ctrl_response_message(ctrl_message* request)
 {
-  int i;
+  //int i;
 
   // Create a response message and initialize it
   ctrl_message* response = (ctrl_message*)create_message(); 
@@ -23,10 +24,10 @@ message* create_ctrl_response_message(ctrl_message* request)
 int main(int argc, char *argv[])
 {
   ctrl_message* request;			// Client's request message
-  message* response;				// Server response message
+  //message* response;				// Server response message
   host client;						// Client's address
   char* options[4] = { 0 };			// Declare an array of 4 options to be read in from command line
-  int expectedSeqNum = 0;
+  //int expectedSeqNum = 0;
 
   parseInput(argc, argv, options, 2);
 
@@ -39,11 +40,13 @@ int main(int argc, char *argv[])
 	  // Read the request message and generate the response
 	  request = (ctrl_message*)receive_message(sockfd, &client);
 
+	  printf("%u\n%u\n%u\n%u\n%u\n", request->type, request->numSeq, request->length, request->filesize, request->checksum);
+
 	  //Check if the seqNum is what it should be
-	  if ((read in seqNum) != expectedSeqNum)
-	  {
-	    continue;
-	  }
+	 // if ((read in seqNum) != expectedSeqNum)
+	  //{
+	    //continue;
+	  //}
 
 	  //close previous file
 
@@ -55,14 +58,14 @@ int main(int argc, char *argv[])
 
 	  //expectedSeqNum = !expectedSeqNum
 
-	  response = create_ctrl_response_message(request);
+	  //response = create_ctrl_response_message(request);
 
 	  // Send the response and free the memory allocated to the messages
-	  send_message(sockfd, response, &client);
-	  free(request);
-	  free(response);
+	  //send_message(sockfd, response, &client);
+	  //free(request);
+	  //free(response);
   
-  } while (true);
+  } while (1);
   
   // Close the socket
   close(sockfd);

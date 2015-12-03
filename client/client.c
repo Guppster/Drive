@@ -219,7 +219,6 @@ void getDetails(char* filename, long details[], hfs_entry* listRoot)
 long getFilesize(char* filename)
 {
 	FILE *fp;
-	char *buffer;
 
 	fp = fopen(filename, "rb");
 

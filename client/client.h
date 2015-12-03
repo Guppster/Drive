@@ -6,6 +6,7 @@
 #include "../common/networking.h"
 #include "../common/control_message.h"
 #include "../common/udp_client.h"
+#include "../common/udp_sockets.h"
 
 #define LISTBODYLENGTH 10000
 #define AUTHBUFFERLENGTH 50
