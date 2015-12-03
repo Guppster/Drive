@@ -11,7 +11,7 @@ typedef struct
   uint32_t filesize;                    
   uint32_t checksum;          
   uint8_t token[16];
-  uint8_t filename[65511]               
-} ctrl_message;
+  uint8_t filename[65511];
+}ctrl_message;
 
 #endif

@@ -74,7 +74,7 @@ int main(int argc, char *argv[])
 	sprintf(authMsg, "Username:%s\n", options[0]);
 
 	//Concatinate the password into the AUTH message
-	sprintf(authMsg, "Password:%s\n\n", options[1];
+	sprintf(authMsg, "Password:%s\n\n", options[1]);
 
 	//Buffer to store received message, leaving space for the NULL terminator
 	char bufferAuthRequest[AUTHBUFFERLENGTH];
@@ -117,7 +117,7 @@ int main(int argc, char *argv[])
 
     syslog(LOG_INFO, "Server requested the following files:\n%s", strstr(bufferListRequest, "\n\n") + 2);
 
-	sendFiles(bufferListRequest, options[5], options[6]);
+	sendFiles(bufferListRequest, options[5], options[6], token, body);
 
 	// Close the connection
 	close(sockfd);
@@ -147,26 +147,25 @@ void sendToServer(int sockfd, char* msg, char* buffer)
 		err(EXIT_FAILURE, "%s", "Unable to read");
 }//End of sendToServer method
 
-void sendFiles(char* filelist, char* address, char* port)
+void sendFiles(char* filelist, char* address, char* port, char* token, char* body)
 {
 	host server;            // Address of the server
   	ctrl_message* response; // Response returned by the server
 
   	//Create a socket to listen on port 5000
   	int sockfd = create_client_socket(address, port, &server);
-	
-	char* token;
-	token = strtok(filelist, "\n");
+
+	char* tokenizer;
+	tokenizer = strtok(filelist, "\n");
 
 	//Send a type 1 control message with the nextSeq number and the rest of the files details
-	message* ctrlMsg = createCtrlMessage(1, token)
+	message* ctrlMsg = createCtrlMessage(1, (strstr(tokenizer, "\n\n") + 2), token, body);
 
 	//Send it and free its memory
   	send_message(sockfd, ctrlMsg, &server);
   	free(ctrlMsg);
 
 	response = (ctrl_message*)receive_message(sockfd, &server);
-  	response->sum = ntohl(response->sum);
    	
 	//Send the data message containing the first chunk of the file, and wait for the approperiate ACK
 	
@@ -179,16 +178,26 @@ void sendFiles(char* filelist, char* address, char* port)
 	//Once all files have been transmitted send a type 2 control message and wait for an ACK
 }
 
-message* createCtrlMessage(int type, char* filename)
-{		
-	msgCtrl* msg = (ctrlMsg*)create_message();
+message* createCtrlMessage(int type, char* filename, char* token, char* body)
+{
+	ctrl_message* msg = (ctrl_message*)create_message();
+
 	msg->type = 1;
 	msg->numSeq = 0;
-	msg->length = strlen(filename);
-	msg->fileSize =  0;
-	msg->checksum = 0;
-	msg->token = 0;
-	msg->filename = filename;
+	msg->length = htons(strlen(filename));
+	msg->filesize =  htons(0);
+	msg->checksum = htons(strtol(getChecksumFromBody(filename, body), NULL, 16));
+	msg->token[0] = htons(atoi(token));
+	msg->filename[0] = htons(atoi(filename));
 
 	return (message*)msg;
+}//end of createCtrlMessage
+
+char* getChecksumFromBody(char* filename, char* body)
+{
+	char checksum[strstr(body, filename) + strlen(filename) - (strstr(body, filename) + 1];
+	return strtok((strstr(body, filename) + 1), "\n");
 }
+
+
+

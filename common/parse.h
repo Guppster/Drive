@@ -57,7 +57,7 @@ void parseInput(int argc, char *argv[], char* result[], int type)
 			{ 0, 0, 0, 0 }
 		};
 
-		c = getopt_long(argc, argv, "vr:p:d:t:", long_options2, &option_index);
+		c = getopt_long(argc, argv, "vr:p:d:t:", long_options3, &option_index);
 	}
 
 	switch (c)

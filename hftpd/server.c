@@ -33,15 +33,17 @@ int main(int argc, char *argv[])
   // Create a socket to listen on port 5000
   int sockfd = create_server_socket(options[1]);
 
+  //For every file do this
   do
   {
 	  // Read the request message and generate the response
-	  request = (calc_message*)receive_message(sockfd, &client);
+	  request = (ctrl_message*)receive_message(sockfd, &client);
 
-	  //if ((read in seqNum) != expectedSeqNum)
-	  //{
-	  //  continue;
-	  //}
+	  //Check if the seqNum is what it should be
+	  if ((read in seqNum) != expectedSeqNum)
+	  {
+	    continue;
+	  }
 
 	  //close previous file
 
