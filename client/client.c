@@ -117,7 +117,7 @@ int main(int argc, char *argv[])
 
     syslog(LOG_INFO, "Server requested the following files:\n%s", strstr(bufferListRequest, "\n\n") + 2);
 
-	sendFiles(bufferListRequest, options[5], options[6], token, body);
+	sendFiles(bufferListRequest, options[5], options[6], token, listRoot);
 
 	// Close the connection
 	close(sockfd);
@@ -147,7 +147,7 @@ void sendToServer(int sockfd, char* msg, char* buffer)
 		err(EXIT_FAILURE, "%s", "Unable to read");
 }//End of sendToServer method
 
-void sendFiles(char* filelist, char* address, char* port, char* token, char* body)
+void sendFiles(char* filelist, char* address, char* port, char* token, hfs_entry* listRoot)
 {
 	host server;            // Address of the server
   	ctrl_message* response; // Response returned by the server
@@ -159,7 +159,7 @@ void sendFiles(char* filelist, char* address, char* port, char* token, char* bod
 	tokenizer = strtok(filelist, "\n");
 
 	//Send a type 1 control message with the nextSeq number and the rest of the files details
-	message* ctrlMsg = createCtrlMessage(1, (strstr(tokenizer, "\n\n") + 2), token, body);
+	message* ctrlMsg = createCtrlMessage(1, (strstr(tokenizer, "\n\n") + 2), token, listRoot);
 
 	//Send it and free its memory
   	send_message(sockfd, ctrlMsg, &server);
@@ -178,26 +178,54 @@ void sendFiles(char* filelist, char* address, char* port, char* token, char* bod
 	//Once all files have been transmitted send a type 2 control message and wait for an ACK
 }
 
-message* createCtrlMessage(int type, char* filename, char* token, char* body)
+message* createCtrlMessage(int type, char* filename, char* token, hfs_entry* listRoot)
 {
 	ctrl_message* msg = (ctrl_message*)create_message();
+	long details[2] = { 0 };			//Declare an array of 2 details to be populated
+	getDetails(filename, details, listRoot);
 
 	msg->type = 1;
 	msg->numSeq = 0;
 	msg->length = htons(strlen(filename));
-	msg->filesize =  htons(0);
-	msg->checksum = htons(strtol(getChecksumFromBody(filename, body), NULL, 16));
+	msg->filesize =  htons(details[1]);
+	msg->checksum = htons(details[0]);
 	msg->token[0] = htons(atoi(token));
 	msg->filename[0] = htons(atoi(filename));
 
 	return (message*)msg;
 }//end of createCtrlMessage
 
-char* getChecksumFromBody(char* filename, char* body)
+void getDetails(char* filename, long details[], hfs_entry* listRoot)
 {
-	char checksum[strstr(body, filename) + strlen(filename) - (strstr(body, filename) + 1];
-	return strtok((strstr(body, filename) + 1), "\n");
-}
+	//Set a pointer to the root/head of the linked list
+	hfs_entry* current = listRoot;
+
+	//for each entry in listRoot
+	do
+	{
+		//Compare if the current is the specified filename
+		if (strcmp(current->rel_path, filename))
+		{
+			details[0] = current->crc32;
+		}
+
+		//Move on to the next file
+		current = current->next;
+	} while (current != NULL);
+
+	details[1] = getFilesize(filename);
+}//End of getDetails method
+
+long getFilesize(char* filename)
+{
+	FILE *fp;
+	char *buffer;
+
+	fp = fopen(filename, "rb");
+
+	fseek(fp, 0, SEEK_END);
+	return ftell(fp);
+}//End of getFilesize method
 
 
 

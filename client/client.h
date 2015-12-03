@@ -13,6 +13,7 @@
 #define TEMPSTRLENGTH 1000
 
 void sendToServer(int sockfd, char* msg, char* buffer);
-void sendFiles(char* filelist, char* address, char* port, char* token, char* body);
-message* createCtrlMessage(int type, char* filename, char* token, char* body);
-char* getChecksumFromBody(char* filename, char* body);
+void sendFiles(char* filelist, char* address, char* port, char* token, hfs_entry* listRoot);
+message* createCtrlMessage(int type, char* filename, char* token, hfs_entry* listRoot);
+void getDetails(char* filename, long details[], hfs_entry* listRoot);
+long getFilesize(char* filename);
