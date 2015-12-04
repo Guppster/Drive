@@ -13,7 +13,7 @@ int main(int argc, char *argv[])
 	openlog("client", LOG_PERROR | LOG_PID | LOG_NDELAY, LOG_USER);
 
 	char* options[7] = { 0 };			//Declare an array of 7 options to be read in from command line
-	char* token;						//Declare a char array for the token
+	char token[20];						//Declare a char array for the token
 	char body[LISTBODYLENGTH];			//Declare a char array to hold the body of the list message
 	body[0] = '\0';						//Null terminate the char array at the first index (to allow strcat to work)
 	char str[TEMPSTRLENGTH] = "";		//Declare a temporary string called STR to store checksum/length of body
@@ -67,14 +67,11 @@ int main(int argc, char *argv[])
 	int sockfd = connection(results, false);
 
 	//Issue an AUTH request
-	char authMsg[strlen("AUTH\n") + strlen("username:") + sizeof(options[0]) + strlen("\n") + strlen("password:") + sizeof(options[1]) + strlen("\n\n")];
+	char authMsg[strlen("AUTH\n") + strlen("Username:") + sizeof(options[0]) + strlen("\n") + strlen("Password:") + sizeof(options[1]) + strlen("\n\n")];
 	strcpy(authMsg, "AUTH\n");
 
-	//Concatinate the username into the AUTH message
-	sprintf(authMsg, "Username:%s\n", options[0]);
-
-	//Concatinate the password into the AUTH message
-	sprintf(authMsg, "Password:%s\n\n", options[1]);
+	//Concatinate the username and password into the AUTH message
+	sprintf(authMsg, "AUTH\nUsername:%s\nPassword:%s\n\n", options[0], options[1]);
 
 	//Buffer to store received message, leaving space for the NULL terminator
 	char bufferAuthRequest[AUTHBUFFERLENGTH];
@@ -95,17 +92,21 @@ int main(int argc, char *argv[])
 	syslog(LOG_INFO, "Authentication successful");
 
 	//Extract the Token part of the returned string
-	token = strstr(bufferAuthRequest, "Token:");
-	token[strlen(token) - 1] = '\0';
+	strcpy(token,strstr(bufferAuthRequest, "Token:"));
+	token[strlen(token) - 5] = '\0';
+
+	printf("%s", token);
 
 	//Obtain the length of the body and store it in str (temp variable)
 	sprintf(str, "%d", strlen(body));
 
 	//Create a LIST request
-	char msgList[strlen("LIST\n") + strlen("Token:") + sizeof(token) + strlen("\n") + strlen("Length:") + sizeof(str) + strlen("\n\n") + sizeof(body)];
+	char msgList[strlen("LIST\n") + sizeof(token) + strlen("Length:") + sizeof(str) + strlen("\n\n") + sizeof(body)];
 
 	//Concatinate the Header, token, length and end header. Then concatinate body with header.
 	sprintf(msgList, "LIST\n%sLength:%s\n\n%s", token, str, body);
+
+	printf("%s\n", msgList);
 
 	//Buffer to store received message, leaving space for the NULL terminator
 	char bufferListRequest[LISTBUFFERLENGTH];

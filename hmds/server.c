@@ -40,16 +40,16 @@ int main(int argc, char *argv[])
 
 void handle_connection(int connectionfd, char* hostname)
 {
-	char buffer[BUFFERLENGTH];				//A buffer for recieving data
-	int bytes_read;						//A count for how many bytes were read
-	char* pch;						//A pointer used for tokenizing the recieved message
+	char buffer[BUFFERLENGTH];					//A buffer for recieving data
+	int bytes_read;								//A count for how many bytes were read
+	char* pch;									//A pointer used for tokenizing the recieved message
 	char username[CREDENTIALSLENGTH];			//Used to store the user's username
 	char password[CREDENTIALSLENGTH];			//Used to store the user's password
 	char authMsg[AUTHMESSAGELENGTH];			//Used to store the auth message
 	char listMsg[LISTMSGLENGTH];				//Used to store the list message
-	listMsg[0] = '\0';					//Nullterminate the list message at the first index (used for strcat) 
+	listMsg[0] = '\0';							//Nullterminate the list message at the first index (used for strcat) 
 	char listBody[LISTBODYLENGTH];				//Used to store the list Body
-	listBody[0] = '\0';					//Null terminate the list body so strcat can be used to create string
+	listBody[0] = '\0';							//Null terminate the list body so strcat can be used to create string
 
 	syslog(LOG_INFO, "Incoming connection from %s", hostname);
 
@@ -93,6 +93,7 @@ void handle_connection(int connectionfd, char* hostname)
 
 						//Build the AUTH successful response 
 						sprintf(authMsg, "200 Authentication successful\nToken:%s\n\n", authToken);
+						printf("%s\n", authMsg);
 					}
 					else
 					{
@@ -115,6 +116,7 @@ void handle_connection(int connectionfd, char* hostname)
 
 					if (hdb_verify_token(dbConnection, pch + strlen("Token:")) != NULL)
 					{
+						syslog(LOG_DEBUG, "Token Accepted");
 						pch = strtok(NULL, "\n");
 
 						char lenBuffer[100];			//A place to store the length of the file line
@@ -160,8 +162,9 @@ void handle_connection(int connectionfd, char* hostname)
 								}
 								else
 								{
-									//This file has changed, store it's name in files to be sent back in response
-									sprintf(listBody, "%s\n", filename);
+									//This is a new file, store it's name in files to be sent back in response
+									strcat(listBody, filename);
+									strcat(listBody, "\n");
 								}
 							}
 							else
@@ -172,7 +175,8 @@ void handle_connection(int connectionfd, char* hostname)
 								syslog(LOG_DEBUG, "* %s, %s", filename, pch);
 
 								//This is a new file, store it's name in files to be sent back in response
-								sprintf(listBody, "%s\n", filename);
+								strcat(listBody, filename);
+								strcat(listBody, "\n");
 							}
 						}
 					}
@@ -181,6 +185,7 @@ void handle_connection(int connectionfd, char* hostname)
 						//If the user is unauthorized store that to send back
 						strcpy(listMsg, "401 Unauthorized\n\n");
 					}
+
 
 					//Remove last newline because now allowed in specs
 					char *p = listBody;
