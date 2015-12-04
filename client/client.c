@@ -95,8 +95,6 @@ int main(int argc, char *argv[])
 	strcpy(token,strstr(bufferAuthRequest, "Token:"));
 	token[strlen(token) - 5] = '\0';
 
-	printf("%s", token);
-
 	//Obtain the length of the body and store it in str (temp variable)
 	sprintf(str, "%d", strlen(body));
 
@@ -105,8 +103,6 @@ int main(int argc, char *argv[])
 
 	//Concatinate the Header, token, length and end header. Then concatinate body with header.
 	sprintf(msgList, "LIST\n%sLength:%s\n\n%s", token, str, body);
-
-	printf("%s\n", msgList);
 
 	//Buffer to store received message, leaving space for the NULL terminator
 	char bufferListRequest[LISTBUFFERLENGTH];
@@ -151,23 +147,26 @@ void sendToServer(int sockfd, char* msg, char* buffer)
 void sendFiles(char* filelist, char* address, char* port, char* token, hfs_entry* listRoot)
 {
 	host server;            // Address of the server
-  	//ctrl_message* response; // Response returned by the server
+  	ctrl_message* response; // Response returned by the server
 
   	//Create a socket to listen on port 5000
   	int sockfd = create_client_socket(address, port, &server);
 
-	char* tokenizer;
-	tokenizer = strtok(filelist, "\n");
+	//char* tokenizer;
+	//tokenizer = strtok(filelist, "\n");
 
 	//Send a type 1 control message with the nextSeq number and the rest of the files details
-	message* ctrlMsg = createCtrlMessage(1, (strstr(tokenizer, "\n\n") + 2), token, listRoot);
+	message* ctrlMsg = createCtrlMessage(1, (strstr(filelist, "\n\n") + 2), token, listRoot);
+
+	printf("%u\n..", ctrlMsg->length);
 
 	//Send it and free its memory
   	send_message(sockfd, ctrlMsg, &server);
   	free(ctrlMsg);
 
-	//response = (ctrl_message*)receive_message(sockfd, &server);
+	response = (ctrl_message*)receive_message(sockfd, &server);
 
+	printf("%u", response->length);
 	//Send the data message containing the first chunk of the file, and wait for the approperiate ACK
 	
 	//If the server's response contains an error, print an error message (token invalid)
@@ -181,6 +180,7 @@ void sendFiles(char* filelist, char* address, char* port, char* token, hfs_entry
 
 message* createCtrlMessage(int type, char* filename, char* token, hfs_entry* listRoot)
 {
+
 	ctrl_message* msg = (ctrl_message*)create_message();
 	long details[2] = { 0 };			//Declare an array of 2 details to be populated
 	getDetails(filename, details, listRoot);
