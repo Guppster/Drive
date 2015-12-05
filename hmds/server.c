@@ -11,7 +11,7 @@ int main(int argc, char *argv[])
 {
 	//Opens a syslog
 	openlog("server", LOG_PERROR | LOG_PID | LOG_NDELAY, LOG_USER);
-	
+		
 	//Declare an array of 5 options to be read in from command line
 	char* options[2] = { 0 };
 

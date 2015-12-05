@@ -156,7 +156,7 @@ void sendFiles(char* filelist, char* address, char* port, char* token, hfs_entry
 	//tokenizer = strtok(filelist, "\n");
 
 	//Send a type 1 control message with the nextSeq number and the rest of the files details
-	message* ctrlMsg = createCtrlMessage(1, (strstr(filelist, "\n\n") + 2), token, listRoot);
+	message* ctrlMsg = createCtrlMessage((strstr(filelist, "\n\n") + 2), token, listRoot);
 
 	printf("%u\n..", ctrlMsg->length);
 
@@ -166,7 +166,7 @@ void sendFiles(char* filelist, char* address, char* port, char* token, hfs_entry
 
 	response = (ctrl_message*)receive_message(sockfd, &server);
 
-	printf("%u", response->length);
+	printf("%u\n", response->checksum);
 	//Send the data message containing the first chunk of the file, and wait for the approperiate ACK
 	
 	//If the server's response contains an error, print an error message (token invalid)
@@ -178,25 +178,41 @@ void sendFiles(char* filelist, char* address, char* port, char* token, hfs_entry
 	//Once all files have been transmitted send a type 2 control message and wait for an ACK
 }
 
-message* createCtrlMessage(int type, char* filename, char* token, hfs_entry* listRoot)
+message* createCtrlMessage(char* filename, char* token, hfs_entry* listRoot)
 {
-
 	ctrl_message* msg = (ctrl_message*)create_message();
-	long details[2] = { 0 };			//Declare an array of 2 details to be populated
+	char* details[2] = { 0 };			//Declare an array of 2 details to be populated
 	getDetails(filename, details, listRoot);
 
-	msg->type = 1;
+	msg->type = 0;
 	msg->numSeq = 0;
 	msg->length = htons(strlen(filename));
-	msg->filesize =  htons(details[1]);
-	msg->checksum = htons(details[0]);
-	msg->token[0] = htons(atoi(token));
-	msg->filename[0] = htons(atoi(filename));
+	touint32(details[1], &msg->filesize);
+	touint32(details[0], &msg->checksum);
+	touint32(token, &msg->token[0]);
+	touint32(filename, &msg->filename[0]);
 
 	return (message*)msg;
 }//end of createCtrlMessage
 
-void getDetails(char* filename, long details[], hfs_entry* listRoot)
+void touint32(char* string, uint32_t field[])
+{
+	uint32_t buffer[1];
+	int element = 0;
+	int bitsRead = 0;
+	int totalbits = strlen(string) * SIZE_OF_BYTE;
+
+	while (bitsRead > totalbits)
+	{
+		memcpy(&buffer, string + bitsRead, 32);
+		field[element] = htonl(*buffer);
+		element++;
+		bitsRead += 32;
+	}
+
+}//End of touint32 method
+
+void getDetails(char* filename, char* details[], hfs_entry* listRoot)
 {
 	//Set a pointer to the root/head of the linked list
 	hfs_entry* current = listRoot;
@@ -207,8 +223,13 @@ void getDetails(char* filename, long details[], hfs_entry* listRoot)
 		//Compare if the current is the specified filename
 		if (strcmp(current->rel_path, filename))
 		{
-			details[0] = current->crc32;
-			details[1] = getFilesize(current->abs_path);
+			char buf[256];
+			sprintf(buf, "%ul", current->crc32);
+
+			details[0] = buf;
+
+			sprintf(buf, "%ld", getFilesize(current->abs_path));
+			details[1] = buf;
 		}
 
 		//Move on to the next file

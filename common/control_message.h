@@ -10,8 +10,8 @@ typedef struct
   uint16_t length;           
   uint32_t filesize;                    
   uint32_t checksum;          
-  uint8_t token[16];
-  uint8_t filename[65511];
+  uint32_t token[2];
+  uint32_t filename[180];
 }ctrl_message;
 
 #endif

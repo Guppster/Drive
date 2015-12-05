@@ -22,7 +22,7 @@ message* create_ctrl_response_message(ctrl_message* request)
 
 int main(int argc, char *argv[])
 {
-  ctrl_message* request;			// Client's request message
+  ctrl_message* request;	 		// Client's request message
   //message* response;				// Server response message
   host client;						// Client's address
   char* options[4] = { 0 };			// Declare an array of 4 options to be read in from command line
@@ -32,12 +32,16 @@ int main(int argc, char *argv[])
 
   // Create a socket to listen on port specified 
   int sockfd = create_server_socket(options[0]);
-
+ 
   //For every file do this
   do
   {
+	  printf("looking\n");
+
 	  // Read the request message and generate the response
 	  request = (ctrl_message*)receive_message(sockfd, &client);
+
+	  printf("gottie\n");
 
 	  printf("%u..\n%u..\n%u..\n%u..\n%u..\n", request->type, request->numSeq, request->length, request->filesize, request->checksum);
 
