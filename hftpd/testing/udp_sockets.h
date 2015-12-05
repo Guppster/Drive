@@ -5,7 +5,7 @@
 #ifndef UDP_SOCKETS_H
 #define UDP_SOCKETS_H
 
-#define UDP_MSS 1472
+#define UDP_MSS 65535
 
 typedef struct
 {
@@ -26,3 +26,4 @@ message* receive_message(int sockfd, host* source);
 int send_message(int sockfd, message* msg, host* dest);
 
 #endif
+

@@ -114,11 +114,11 @@ int main(int argc, char *argv[])
 
     syslog(LOG_INFO, "Server requested the following files:\n%s", strstr(bufferListRequest, "\n\n") + 2);
 
-	sendFiles(bufferListRequest, options[5], options[6], token, listRoot);
-
 	// Close the connection
 	close(sockfd);
-	
+
+	sendFiles(bufferListRequest, options[5], options[6], token, listRoot);
+
 	//Print the list of files requested by the server. If the server requests no files, print an appropriate message.
 	exit(EXIT_SUCCESS);
 
@@ -146,10 +146,10 @@ void sendToServer(int sockfd, char* msg, char* buffer)
 
 void sendFiles(char* filelist, char* address, char* port, char* token, hfs_entry* listRoot)
 {
-	host server;            // Address of the server
   	ctrl_message* response; // Response returned by the server
+	host server;            // Address of the server
 
-  	//Create a socket to listen on port 5000
+  	//Create a socket to listen on port specified
   	int sockfd = create_client_socket(address, port, &server);
 
 	//char* tokenizer;
@@ -158,15 +158,23 @@ void sendFiles(char* filelist, char* address, char* port, char* token, hfs_entry
 	//Send a type 1 control message with the nextSeq number and the rest of the files details
 	message* ctrlMsg = createCtrlMessage((strstr(filelist, "\n\n") + 2), token, listRoot);
 
-	printf("%u\n..", ctrlMsg->length);
-
 	//Send it and free its memory
-  	send_message(sockfd, ctrlMsg, &server);
+  	int retval = send_message(sockfd, ctrlMsg, &server);
   	free(ctrlMsg);
+
+	if (retval == -1)
+	{
+		close(sockfd);
+		perror("Unable to send to socket");
+		exit(EXIT_FAILURE);
+	}
 
 	response = (ctrl_message*)receive_message(sockfd, &server);
 
 	printf("%u\n", response->checksum);
+
+	close(sockfd);
+	exit(EXIT_SUCCESS);
 	//Send the data message containing the first chunk of the file, and wait for the approperiate ACK
 	
 	//If the server's response contains an error, print an error message (token invalid)
@@ -184,9 +192,10 @@ message* createCtrlMessage(char* filename, char* token, hfs_entry* listRoot)
 	char* details[2] = { 0 };			//Declare an array of 2 details to be populated
 	getDetails(filename, details, listRoot);
 
+	msg->length = htons(28 + strlen(filename));
 	msg->type = 0;
 	msg->numSeq = 0;
-	msg->length = htons(strlen(filename));
+	msg->flength = htons(strlen(filename));
 	touint32(details[1], &msg->filesize);
 	touint32(details[0], &msg->checksum);
 	touint32(token, &msg->token[0]);
@@ -204,7 +213,7 @@ void touint32(char* string, uint32_t field[])
 
 	while (bitsRead > totalbits)
 	{
-		memcpy(&buffer, string + bitsRead, 32);
+		memcpy(&buffer, string + bitsRead, 4);
 		field[element] = htonl(*buffer);
 		element++;
 		bitsRead += 32;

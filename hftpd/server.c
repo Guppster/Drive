@@ -12,8 +12,7 @@
 
 message* create_ctrl_response_message(ctrl_message* request)
 {
-
-  // Create a response message and initialize it
+  // Create a response message and initialize it 
   ctrl_message* response = (ctrl_message*)create_message(); 
 
   // Return the dynamically-allocated message
@@ -43,7 +42,7 @@ int main(int argc, char *argv[])
 
 	  printf("gottie\n");
 
-	  printf("%u..\n%u..\n%u..\n%u..\n%u..\n", request->type, request->numSeq, request->length, request->filesize, request->checksum);
+	  printf("%u..\n%u..\n%u..\n%u..\n%u..\n", request->type, request->numSeq, request->length, request->flength, request->checksum);
 
 	  //Check if the seqNum is what it should be
 	 // if ((read in seqNum) != expectedSeqNum)
