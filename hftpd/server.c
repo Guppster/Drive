@@ -22,10 +22,10 @@ message* create_ctrl_response_message(ctrl_message* request)
 int main(int argc, char *argv[])
 {
   ctrl_message* request;	 		// Client's request message
-  //message* response;				// Server response message
+ // message* response;				// Server response message
   host client;						// Client's address
   char* options[4] = { 0 };			// Declare an array of 4 options to be read in from command line
-  //int expectedSeqNum = 0;
+  int expectedSeqNum = 0;
 
   parseInput(argc, argv, options, 2);
 
@@ -35,20 +35,23 @@ int main(int argc, char *argv[])
   //For every file do this
   do
   {
-	  printf("looking\n");
-
 	  // Read the request message and generate the response
 	  request = (ctrl_message*)receive_message(sockfd, &client);
 
-	  printf("gottie\n");
+	  char* filename = (char*)request->filename;
 
-	  printf("%u..\n%u..\n%u..\n%u..\n%u..\n", request->type, request->numSeq, request->length, request->flength, request->checksum);
+	  printf("filename: %s\n", filename);
 
 	  //Check if the seqNum is what it should be
-	 // if ((read in seqNum) != expectedSeqNum)
-	  //{
-	    //continue;
-	  //}
+	  if ((request->numSeq) != expectedSeqNum)
+	  {
+		  continue;
+	  }
+
+	  if (request->type == 1)
+	  {
+
+	  }
 
 	  //close previous file
 

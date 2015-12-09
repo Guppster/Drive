@@ -13,6 +13,9 @@
 #define LISTBUFFERLENGTH 10000
 #define TEMPSTRLENGTH 1000
 #define SIZE_OF_BYTE 8
+#define SIZE_OF_CONTROLMSG 28
+#define LENGTH_OF_TOKEN_TITLE 6
+
 
 int main (int, char*[]);
 void sendToServer(int sockfd, char* msg, char* buffer);
@@ -21,3 +24,4 @@ message* createCtrlMessage(char* filename, char* token, hfs_entry* listRoot);
 void getDetails(char* filename, char* details[], hfs_entry* listRoot);
 long getFilesize(char* filename);
 void touint32(char* string, uint32_t field[]);
+void toString(char** string, uint32_t field[], int length);

@@ -28,12 +28,12 @@ int main(int argc, char *argv[])
 	hfs_entry* listRoot = hfs_get_files(options[4]);
 
 	//Check if the scanned directory was empty, if so tell the user and exit
-	if(listRoot == NULL)
+	if (listRoot == NULL)
 	{
 		syslog(LOG_INFO, "Unable to find any files in directory tree");
 		exit(EXIT_FAILURE);
 	}
- 
+
 	//Set a pointer to the root/head of the linked list
 	hfs_entry* current = listRoot;
 
@@ -117,7 +117,10 @@ int main(int argc, char *argv[])
 	// Close the connection
 	close(sockfd);
 
-	sendFiles(bufferListRequest, options[5], options[6], token, listRoot);
+	//Prepare the token (remove title and \n)
+	token[strlen(token)-1] = '\0';
+
+	sendFiles(bufferListRequest, options[5], options[6], token + LENGTH_OF_TOKEN_TITLE, listRoot);
 
 	//Print the list of files requested by the server. If the server requests no files, print an appropriate message.
 	exit(EXIT_SUCCESS);
@@ -152,11 +155,24 @@ void sendFiles(char* filelist, char* address, char* port, char* token, hfs_entry
   	//Create a socket to listen on port specified
   	int sockfd = create_client_socket(address, port, &server);
 
-	//char* tokenizer;
-	//tokenizer = strtok(filelist, "\n");
+	//Find the start of the list of files
+	filelist = (strstr(filelist, "\n\n") + 2);
+
+	//Create a tokenizer to deal with one filename at a time
+	char* tokenizer;
+
+	//Seperate one line form the file list
+	tokenizer = strtok(filelist, "\n");
 
 	//Send a type 1 control message with the nextSeq number and the rest of the files details
-	message* ctrlMsg = createCtrlMessage((strstr(filelist, "\n\n") + 2), token, listRoot);
+	message* ctrlMsg = createCtrlMessage(tokenizer, token, listRoot);
+
+	ctrl_message* tempmsg = (ctrl_message*)ctrlMsg;
+
+	char* filename = calloc(sizeof(char),tempmsg->flength);
+	toString(&filename, tempmsg->filename, tempmsg->flength);
+
+	printf("Recieved Filename: [%s]\n", filename);
 
 	//Send it and free its memory
   	int retval = send_message(sockfd, ctrlMsg, &server);
@@ -192,7 +208,7 @@ message* createCtrlMessage(char* filename, char* token, hfs_entry* listRoot)
 	char* details[2] = { 0 };			//Declare an array of 2 details to be populated
 	getDetails(filename, details, listRoot);
 
-	msg->length = htons(28 + strlen(filename));
+	msg->length = htons(SIZE_OF_CONTROLMSG + strlen(filename));
 	msg->type = 0;
 	msg->numSeq = 0;
 	msg->flength = htons(strlen(filename));
@@ -200,6 +216,8 @@ message* createCtrlMessage(char* filename, char* token, hfs_entry* listRoot)
 	touint32(details[0], &msg->checksum);
 	touint32(token, &msg->token[0]);
 	touint32(filename, &msg->filename[0]);
+
+	printf("Expected filename: [%s]\nExpected flength: [%d]\nExpected Filesize: [%s]\nExpected Checksum: [%s]\nExpected Token: [%s]\n", filename, strlen(filename), details[1], details[0], token);
 
 	return (message*)msg;
 }//end of createCtrlMessage
@@ -211,7 +229,7 @@ void touint32(char* string, uint32_t field[])
 	int bitsRead = 0;
 	int totalbits = strlen(string) * SIZE_OF_BYTE;
 
-	while (bitsRead > totalbits)
+	while (bitsRead < totalbits)
 	{
 		memcpy(&buffer, string + bitsRead, 4);
 		field[element] = htonl(*buffer);
@@ -221,10 +239,32 @@ void touint32(char* string, uint32_t field[])
 
 }//End of touint32 method
 
+void toString(char** string, uint32_t field[], int length)
+{
+	char buffer[4];
+	int element = 0;
+	int bitsRead = 0;
+
+	while (bitsRead <= length)
+	{
+		long val = ntohl(field[element]);
+		memcpy(&buffer, &val, 4);
+
+		strcpy(*string + bitsRead, buffer);
+
+		element++;
+		bitsRead += 32;
+	}
+
+}//End of toString method
+
 void getDetails(char* filename, char* details[], hfs_entry* listRoot)
 {
 	//Set a pointer to the root/head of the linked list
 	hfs_entry* current = listRoot;
+
+	char buffer[1000];
+	char buffer2[1000];
 
 	//for each entry in listRoot
 	do
@@ -232,13 +272,12 @@ void getDetails(char* filename, char* details[], hfs_entry* listRoot)
 		//Compare if the current is the specified filename
 		if (strcmp(current->rel_path, filename))
 		{
-			char buf[256];
-			sprintf(buf, "%ul", current->crc32);
 
-			details[0] = buf;
+			sprintf(buffer, "%ul", current->crc32);
+			details[0] = buffer;
 
-			sprintf(buf, "%ld", getFilesize(current->abs_path));
-			details[1] = buf;
+			sprintf(buffer2, "%ld", getFilesize(current->abs_path));
+			details[1] = buffer2;
 		}
 
 		//Move on to the next file
