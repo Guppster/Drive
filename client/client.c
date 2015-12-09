@@ -167,13 +167,6 @@ void sendFiles(char* filelist, char* address, char* port, char* token, hfs_entry
 	//Send a type 1 control message with the nextSeq number and the rest of the files details
 	message* ctrlMsg = createCtrlMessage(tokenizer, token, listRoot);
 
-	ctrl_message* tempmsg = (ctrl_message*)ctrlMsg;
-
-	char* filename = calloc(sizeof(char),tempmsg->flength);
-	toString(&filename, tempmsg->filename, tempmsg->flength);
-
-	printf("Recieved Filename: [%s]\n", filename);
-
 	//Send it and free its memory
   	int retval = send_message(sockfd, ctrlMsg, &server);
   	free(ctrlMsg);
@@ -238,25 +231,6 @@ void touint32(char* string, uint32_t field[])
 	}
 
 }//End of touint32 method
-
-void toString(char** string, uint32_t field[], int length)
-{
-	char buffer[4];
-	int element = 0;
-	int bitsRead = 0;
-
-	while (bitsRead <= length)
-	{
-		long val = ntohl(field[element]);
-		memcpy(&buffer, &val, 4);
-
-		strcpy(*string + bitsRead, buffer);
-
-		element++;
-		bitsRead += 32;
-	}
-
-}//End of toString method
 
 void getDetails(char* filename, char* details[], hfs_entry* listRoot)
 {

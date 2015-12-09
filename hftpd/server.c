@@ -9,6 +9,7 @@
 #include "../common/udp_sockets.h"
 #include "../common/udp_server.h"
 #include "../common/parse.h"
+#include "server.h"
 
 message* create_ctrl_response_message(ctrl_message* request)
 {
@@ -38,9 +39,10 @@ int main(int argc, char *argv[])
 	  // Read the request message and generate the response
 	  request = (ctrl_message*)receive_message(sockfd, &client);
 
-	  char* filename = (char*)request->filename;
+	  char* filename = calloc(sizeof(char), request->flength);
+	  toString(&filename, request->filename, request->flength);
 
-	  printf("filename: %s\n", filename);
+	  printf("Filename: %s\n", filename);
 
 	  //Check if the seqNum is what it should be
 	  if ((request->numSeq) != expectedSeqNum)
@@ -77,3 +79,22 @@ int main(int argc, char *argv[])
 
   exit(EXIT_SUCCESS);
 }
+
+void toString(char** string, uint32_t field[], int length)
+{
+	char buffer[4];
+	int element = 0;
+	int bitsRead = 0;
+
+	while (bitsRead <= length)
+	{
+		long val = ntohl(field[element]);
+		memcpy(&buffer, &val, 4);
+
+		strcpy(*string + bitsRead, buffer);
+
+		element++;
+		bitsRead += 32;
+	}
+
+}//End of toString method
