@@ -23,7 +23,7 @@ int main(int argc, char *argv[])
 	host client;						// Client's address
 	char* options[4] = { 0 };			// Declare an array of 4 options to be read in from command line
 	int expectedSeqNum = 0;
-	char username[30];
+	char* username = calloc(30,sizeof(char));
 
 	parseInput(argc, argv, options, 2);
 
@@ -56,7 +56,7 @@ int main(int argc, char *argv[])
 			continue;
 		}
 
-		strcpy(username, hdb_verify_token(dbConnection, (char*)request->token));
+		 username = hdb_verify_token(dbConnection, (char*)request->token);
 
 		//Send back the control message response 
 		if ((request->type == 1) && username != NULL)

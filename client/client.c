@@ -149,7 +149,7 @@ void sendToServer(int sockfd, char* msg, char* buffer)
 
 void sendFiles(char* filelist, char* address, char* port, char* token, hfs_entry* listRoot)
 {
-  	//ctrl_message* response; // Response returned by the server
+  	resp_message* response; // Response returned by the server
 	host server;            // Address of the server
 
   	//Create a socket to listen on port specified
@@ -180,9 +180,9 @@ void sendFiles(char* filelist, char* address, char* port, char* token, hfs_entry
 			exit(EXIT_FAILURE);
 		}
 
-		//response = (ctrl_message*)receive_message(sockfd, &server);
+		response = (resp_message*)receive_message(sockfd, &server);
 
-		//printf("%u\n", response->checksum);
+		printf("%u\n", response->numSeq);
 
 		//Seperate one line form the file list
 		tokenizer = strtok(NULL, "\n");
@@ -204,7 +204,8 @@ void sendFiles(char* filelist, char* address, char* port, char* token, hfs_entry
 message* createCtrlMessage(char* filename, char* token, hfs_entry* listRoot)
 {
 	ctrl_message* msg = (ctrl_message*)create_message();
-	char* details[2] = { 0 };			//Declare an array of 2 details to be populated
+
+	char* details[2] = { 0 };						//Declare an array of 2 details to be populated
 	getDetails(filename, details, listRoot);
 	long detail1NetOrder = htons(*details[1]);
 	long detail0NetOrder = htons(*details[0]);
@@ -218,7 +219,7 @@ message* createCtrlMessage(char* filename, char* token, hfs_entry* listRoot)
 	memcpy(&msg->token[0], token, strlen(token));
 	memcpy(&msg->filename[0], filename, strlen(filename));
 
-	printf("\nExpected filename: [%s]\nExpected flength: [%d]\nExpected Filesize: [%s]\nExpected Checksum: [%s]\nExpected Token: [%s]\n", filename, strlen(filename), details[1], details[0], token);
+	//printf("\nExpected filename: [%s]\nExpected flength: [%d]\nExpected Filesize: [%s]\nExpected Checksum: [%s]\nExpected Token: [%s]\n", filename, strlen(filename), details[1], details[0], token);
 
 	return (message*)msg;
 }//end of createCtrlMessage
