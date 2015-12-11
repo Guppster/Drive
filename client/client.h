@@ -4,7 +4,7 @@
 #include <hfs.h>
 #include "../common/parse.h"
 #include "../common/networking.h"
-#include "../common/control_message.h"
+#include "../common/message.h"
 #include "../common/udp_client.h"
 #include "../common/udp_sockets.h"
 
@@ -23,5 +23,3 @@ void sendFiles(char* filelist, char* address, char* port, char* token, hfs_entry
 message* createCtrlMessage(char* filename, char* token, hfs_entry* listRoot);
 void getDetails(char* filename, char* details[], hfs_entry* listRoot);
 long getFilesize(char* filename);
-void touint32(char* string, uint32_t field[]);
-void toString(char** string, uint32_t field[], int length);

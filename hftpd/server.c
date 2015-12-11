@@ -1,100 +1,99 @@
-#include <arpa/inet.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/socket.h>
-#include <string.h>
-#include <unistd.h>
-#include "../common/control_message.h"
-#include "../common/udp_sockets.h"
-#include "../common/udp_server.h"
-#include "../common/parse.h"
 #include "server.h"
 
-message* create_ctrl_response_message(ctrl_message* request)
+//0 for no error, 1 for error (invalid token)
+message* create_ctrl_response_message(ctrl_message* request, int error, int seqNum)
 {
-  // Create a response message and initialize it 
-  ctrl_message* response = (ctrl_message*)create_message(); 
+	// Create a response message and initialize it 
+	resp_message* response = (resp_message*)create_message();
 
-  // Return the dynamically-allocated message
-  return (message*)response;  
+	response->length = 4;
+	response->type = 255;
+	response->numSeq = seqNum;
+	response->errCode = error;		//maybe ntohs?
+
+	// Return the dynamically-allocated message
+	return (message*)response;
 }
 
 int main(int argc, char *argv[])
 {
-  ctrl_message* request;	 		// Client's request message
- // message* response;				// Server response message
-  host client;						// Client's address
-  char* options[4] = { 0 };			// Declare an array of 4 options to be read in from command line
-  int expectedSeqNum = 0;
+	//FILE *fp;
+	//FILE *prevfp;
+	ctrl_message* request;	 			// Client's request message
+	host client;						// Client's address
+	char* options[4] = { 0 };			// Declare an array of 4 options to be read in from command line
+	int expectedSeqNum = 0;
+	char username[30];
 
-  parseInput(argc, argv, options, 2);
+	parseInput(argc, argv, options, 2);
 
-  // Create a socket to listen on port specified 
-  int sockfd = create_server_socket(options[0]);
- 
-  //For every file do this
-  do
-  {
-	  // Read the request message and generate the response
-	  request = (ctrl_message*)receive_message(sockfd, &client);
+	//Create a DB Connection
+	hdb_connection* dbConnection = hdb_connect(options[1]);
 
-	  char* filename = calloc(sizeof(char), request->flength);
-	  toString(&filename, request->filename, request->flength);
+	// Create a socket to listen on port specified 
+	int sockfd = create_server_socket(options[0]);
 
-	  printf("Filename: %s\n", filename);
-
-	  //Check if the seqNum is what it should be
-	  if ((request->numSeq) != expectedSeqNum)
-	  {
-		  continue;
-	  }
-
-	  if (request->type == 1)
-	  {
-
-	  }
-
-	  //close previous file
-
-	  //update metadata
-
-	  //open new file
-
-	  //ACK(seq)
-
-	  //expectedSeqNum = !expectedSeqNum
-
-	  //response = create_ctrl_response_message(request);
-
-	  // Send the response and free the memory allocated to the messages
-	  //send_message(sockfd, response, &client);
-	  //free(request);
-	  //free(response);
-  
-  } while (1);
-  
-  // Close the socket
-  close(sockfd);
-
-  exit(EXIT_SUCCESS);
-}
-
-void toString(char** string, uint32_t field[], int length)
-{
-	char buffer[4];
-	int element = 0;
-	int bitsRead = 0;
-
-	while (bitsRead <= length)
+	//For every file do this
+	do
 	{
-		long val = ntohl(field[element]);
-		memcpy(&buffer, &val, 4);
+		// Read the request message and generate the response
+		request = (ctrl_message*)receive_message(sockfd, &client);
 
-		strcpy(*string + bitsRead, buffer);
+		long tempChecksum = ntohs(request->checksum);
 
-		element++;
-		bitsRead += 32;
-	}
+		char filename[1444];
+		char token[16];
+		char checksum[4];
+		memcpy(filename, (char*)request->filename, request->flength);
+		memcpy(token, (char*)request->token, 16);
+		memcpy(checksum, &tempChecksum, 4);
 
-}//End of toString method
+		printf("\nType: %d\nFilename: %s\nChecksum: %s\n", (int)request->type, filename, checksum);
+
+		//Check if the seqNum is what it should be
+		if ((request->numSeq) != expectedSeqNum)
+		{
+			continue;
+		}
+
+		strcpy(username, hdb_verify_token(dbConnection, (char*)request->token));
+
+		//Send back the control message response 
+		if ((request->type == 1) && username != NULL)
+		{
+			//close previous file (why not close at end of data recieving?)
+			//fclose(prevfp);
+
+			//update metadata
+
+			//open new file
+			//fp = fopen(filename, "wb");
+
+			//ACK(seq)
+			message* respMsg = create_ctrl_response_message(request, 0, expectedSeqNum);
+
+			//expectedSeqNum = !expectedSeqNum
+			expectedSeqNum = 1;
+
+			// Send the response and free the memory allocated to the messages
+			send_message(sockfd, respMsg, &client);
+			free(request);
+			free(respMsg);
+		}
+		else
+		{
+			message* respMsg = create_ctrl_response_message(request, 0, expectedSeqNum);
+
+			// Send the response and free the memory allocated to the messages
+			send_message(sockfd, respMsg, &client);
+			free(request);
+			free(respMsg);
+		}
+
+	} while (1);
+
+	// Close the socket
+	close(sockfd);
+
+	exit(EXIT_SUCCESS);
+}

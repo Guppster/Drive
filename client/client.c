@@ -149,7 +149,7 @@ void sendToServer(int sockfd, char* msg, char* buffer)
 
 void sendFiles(char* filelist, char* address, char* port, char* token, hfs_entry* listRoot)
 {
-  	ctrl_message* response; // Response returned by the server
+  	//ctrl_message* response; // Response returned by the server
 	host server;            // Address of the server
 
   	//Create a socket to listen on port specified
@@ -164,23 +164,29 @@ void sendFiles(char* filelist, char* address, char* port, char* token, hfs_entry
 	//Seperate one line form the file list
 	tokenizer = strtok(filelist, "\n");
 
-	//Send a type 1 control message with the nextSeq number and the rest of the files details
-	message* ctrlMsg = createCtrlMessage(tokenizer, token, listRoot);
-
-	//Send it and free its memory
-  	int retval = send_message(sockfd, ctrlMsg, &server);
-  	free(ctrlMsg);
-
-	if (retval == -1)
+	while (tokenizer != NULL)
 	{
-		close(sockfd);
-		perror("Unable to send to socket");
-		exit(EXIT_FAILURE);
+		//Send a type 1 control message with the nextSeq number and the rest of the files details
+		message* ctrlMsg = createCtrlMessage(tokenizer, token, listRoot);
+
+		//Send it and free its memory
+		int retval = send_message(sockfd, ctrlMsg, &server);
+		free(ctrlMsg);
+
+		if (retval == -1)
+		{
+			close(sockfd);
+			perror("Unable to send to socket");
+			exit(EXIT_FAILURE);
+		}
+
+		//response = (ctrl_message*)receive_message(sockfd, &server);
+
+		//printf("%u\n", response->checksum);
+
+		//Seperate one line form the file list
+		tokenizer = strtok(NULL, "\n");
 	}
-
-	response = (ctrl_message*)receive_message(sockfd, &server);
-
-	printf("%u\n", response->checksum);
 
 	close(sockfd);
 	exit(EXIT_SUCCESS);
@@ -200,37 +206,22 @@ message* createCtrlMessage(char* filename, char* token, hfs_entry* listRoot)
 	ctrl_message* msg = (ctrl_message*)create_message();
 	char* details[2] = { 0 };			//Declare an array of 2 details to be populated
 	getDetails(filename, details, listRoot);
+	long detail1NetOrder = htons(*details[1]);
+	long detail0NetOrder = htons(*details[0]);
 
 	msg->length = htons(SIZE_OF_CONTROLMSG + strlen(filename));
-	msg->type = 0;
+	msg->type = 1;
 	msg->numSeq = 0;
 	msg->flength = htons(strlen(filename));
-	touint32(details[1], &msg->filesize);
-	touint32(details[0], &msg->checksum);
-	touint32(token, &msg->token[0]);
-	touint32(filename, &msg->filename[0]);
+	memcpy(&msg->filesize, &detail1NetOrder, strlen(details[1]));
+	memcpy(&msg->checksum, &detail0NetOrder, strlen(details[0]));
+	memcpy(&msg->token[0], token, strlen(token));
+	memcpy(&msg->filename[0], filename, strlen(filename));
 
-	printf("Expected filename: [%s]\nExpected flength: [%d]\nExpected Filesize: [%s]\nExpected Checksum: [%s]\nExpected Token: [%s]\n", filename, strlen(filename), details[1], details[0], token);
+	printf("\nExpected filename: [%s]\nExpected flength: [%d]\nExpected Filesize: [%s]\nExpected Checksum: [%s]\nExpected Token: [%s]\n", filename, strlen(filename), details[1], details[0], token);
 
 	return (message*)msg;
 }//end of createCtrlMessage
-
-void touint32(char* string, uint32_t field[])
-{
-	uint32_t buffer[1];
-	int element = 0;
-	int bitsRead = 0;
-	int totalbits = strlen(string) * SIZE_OF_BYTE;
-
-	while (bitsRead < totalbits)
-	{
-		memcpy(&buffer, string + bitsRead, 4);
-		field[element] = htonl(*buffer);
-		element++;
-		bitsRead += 32;
-	}
-
-}//End of touint32 method
 
 void getDetails(char* filename, char* details[], hfs_entry* listRoot)
 {

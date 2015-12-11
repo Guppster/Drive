@@ -8,7 +8,7 @@
 // correct config for each type
 // *0 = client = 	{username, password, server, port, dir, fserver, fport}
 // *1 = hdb server = 	{server, port}
-// *2 = hftpd server = 	{redis, port, dir, timewait}
+// *2 = hftpd server = 	{port, redis, dir, timewait}
 void parseInput(int argc, char *argv[], char* result[], int type)
 {
 	int c;

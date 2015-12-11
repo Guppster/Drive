@@ -1,1 +1,12 @@
-void toString(char** string, uint32_t field[], int length);
+#include <arpa/inet.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/socket.h>
+#include <string.h>
+#include <unistd.h>
+#include <hdb.h>
+#include "../common/message.h"
+#include "../common/udp_sockets.h"
+#include "../common/udp_server.h"
+#include "../common/parse.h"
