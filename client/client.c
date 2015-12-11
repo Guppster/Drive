@@ -182,7 +182,14 @@ void sendFiles(char* filelist, char* address, char* port, char* token, hfs_entry
 
 		response = (resp_message*)receive_message(sockfd, &server);
 
-		printf("%u\n", response->numSeq);
+		if (response->errCode == 1)
+		{
+			//Print Error message and exit
+			exit(EXIT_FAILURE);
+		}
+
+		//Send the data message containing the first chunk of the file, and wait for the approperiate ACK
+
 
 		//Seperate one line form the file list
 		tokenizer = strtok(NULL, "\n");
@@ -190,10 +197,8 @@ void sendFiles(char* filelist, char* address, char* port, char* token, hfs_entry
 
 	close(sockfd);
 	exit(EXIT_SUCCESS);
-	//Send the data message containing the first chunk of the file, and wait for the approperiate ACK
 	
-	//If the server's response contains an error, print an error message (token invalid)
-
+	
 	//If there is more data, increment dataSeq and loop ^
 
 	//If there is another file to send, increment nextSeq and loop ^^ 	

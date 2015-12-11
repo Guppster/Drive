@@ -88,6 +88,7 @@ int main(int argc, char *argv[])
 			send_message(sockfd, respMsg, &client);
 			free(request);
 			free(respMsg);
+
 		}
 
 	} while (1);
