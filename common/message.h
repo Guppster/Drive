@@ -29,7 +29,8 @@ typedef struct
 	uint8_t type;
 	uint8_t numSeq;
 	uint16_t dataLen;
-	uint8_t data[1468];
+	uint8_t data[1467];
+	uint8_t padding;
 }data_message;
 
 #endif

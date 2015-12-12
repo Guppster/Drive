@@ -39,16 +39,14 @@ int main(int argc, char *argv[])
 		// Read the request message and generate the response
 		request = (ctrl_message*)receive_message(sockfd, &client);
 
-		long tempChecksum = ntohs(request->checksum);
-
-		char filename[1444];
+		int checksum = ntohl(request->checksum);
+		printf("%X\n", checksum);
+		char filename[request->flength];
 		char token[16];
-		char checksum[4];
 		memcpy(filename, (char*)request->filename, request->flength);
 		memcpy(token, (char*)request->token, 16);
-		memcpy(checksum, &tempChecksum, 4);
 
-		printf("\nType: %d\nFilename: %s\nChecksum: %s\n", (int)request->type, filename, checksum);
+		printf("\nType: %d\nFilename: %s\nChecksum: %X\nToken: [%s]\n", (int)request->type, filename, checksum, token);
 
 		//Check if the seqNum is what it should be
 		if ((request->numSeq) != expectedSeqNum)

@@ -211,20 +211,20 @@ message* createCtrlMessage(char* filename, char* token, hfs_entry* listRoot)
 	ctrl_message* msg = (ctrl_message*)create_message();
 
 	char* details[2] = { 0 };						//Declare an array of 2 details to be populated
+
 	getDetails(filename, details, listRoot);
-	long detail1NetOrder = htons(*details[1]);
-	long detail0NetOrder = htons(*details[0]);
+	sprintf(details[0], "%X", atoi(details[0]));
 
 	msg->length = htons(SIZE_OF_CONTROLMSG + strlen(filename));
 	msg->type = 1;
 	msg->numSeq = 0;
 	msg->flength = htons(strlen(filename));
-	memcpy(&msg->filesize, &detail1NetOrder, strlen(details[1]));
-	memcpy(&msg->checksum, &detail0NetOrder, strlen(details[0]));
+	msg->checksum = htonl((uint32_t)strtoul(details[0], NULL, 16));
+	msg->filesize = htonl((uint32_t)strtoul(details[1], NULL, 16));
 	memcpy(&msg->token[0], token, strlen(token));
 	memcpy(&msg->filename[0], filename, strlen(filename));
 
-	//printf("\nExpected filename: [%s]\nExpected flength: [%d]\nExpected Filesize: [%s]\nExpected Checksum: [%s]\nExpected Token: [%s]\n", filename, strlen(filename), details[1], details[0], token);
+	printf("\nExpected filename: [%s]\nExpected flength: [%d]\nExpected Filesize: [%X]\nExpected Checksum: [%s]\nExpected Token: [%s]\n", filename, strlen(filename), atoi(details[1]), details[0], token);
 
 	return (message*)msg;
 }//end of createCtrlMessage
@@ -244,7 +244,7 @@ void getDetails(char* filename, char* details[], hfs_entry* listRoot)
 		if (strcmp(current->rel_path, filename))
 		{
 
-			sprintf(buffer, "%ul", current->crc32);
+			sprintf(buffer, "%d", current->crc32);
 			details[0] = buffer;
 
 			sprintf(buffer2, "%ld", getFilesize(current->abs_path));
