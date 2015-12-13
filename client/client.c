@@ -157,6 +157,13 @@ void sendFiles(char* filelist, char* address, char* port, char* token, hfs_entry
 	int dataCounter = 0;											//Tracks how many bytes have been sent in the data message
 	int sockfd = create_client_socket(address, port, &server);		//Create a socket to listen on port specified
 
+	// We will poll sockfd for the POLLIN event
+	struct pollfd fd = 
+	{
+		.fd = sockfd,
+		.events = POLLIN
+	};
+
 	//Find the start of the list of files
 	filelist = (strstr(filelist, "\n\n") + 2);
 
@@ -172,19 +179,26 @@ void sendFiles(char* filelist, char* address, char* port, char* token, hfs_entry
 		//Send a type 1 control message with the nextSeq number and the rest of the files details
 		message* ctrlMsg = createCtrlMessage(tokenizer, token, fileDetails, nextSeq, 1);
 
-		//Send the control message
-		int retval = send_message(sockfd, ctrlMsg, &server);
-
-		//Free the memory for control message
-		free(ctrlMsg);
-
-		//If there was an error sending the control message, display it and exit failure
-		if (retval == -1)
+		do
 		{
-			close(sockfd);
-			perror("Unable to send to socket");
-			exit(EXIT_FAILURE);
-		}
+			//Send the control message
+			int retval = send_message(sockfd, ctrlMsg, &server);
+
+			//Free the memory for control message
+			free(ctrlMsg);
+
+			//If there was an error sending the control message, display it and exit failure
+			if (retval == -1)
+			{
+				close(sockfd);
+				perror("Unable to send to socket");
+				exit(EXIT_FAILURE);
+			}
+
+			// Poll the socket for 1 second
+			retval = poll(&fd, 1, 1000);
+
+		} while (retval == 1 && fd.revents == POLLIN);
 
 		//Wait for a response message
 		response = (resp_message*)receive_message(sockfd, &server);
@@ -207,22 +221,30 @@ void sendFiles(char* filelist, char* address, char* port, char* token, hfs_entry
 
 			do
 			{
-d				//Send the data message containing a chunk of the file, and wait for the approperiate ACK
+				//Send the data message containing a chunk of the file, and wait for the approperiate ACK
 				message* dataMsg = createDataMessage(tokenizer, nextSeq, dataCounter, SIZE_OF_DATA);
 
-				//Send the control message
-				int retval = send_message(sockfd, dataMsg, &server);
+				do
+				{
+
+					//Send the control message
+					int retval = send_message(sockfd, dataMsg, &server);
+
+					//If there was an error sending the data message, display it and exit failure
+					if (retval == -1)
+					{
+						close(sockfd);
+						perror("Unable to send to socket");
+						exit(EXIT_FAILURE);
+					}
+
+					// Poll the socket for 1 second
+					retval = poll(&fd, 1, 1000);
+
+				} while (retval == 1 && fd.revents == POLLIN);
 
 				//Free the memory for control message
 				free(dataMsg);
-
-				//If there was an error sending the data message, display it and exit failure
-				if (retval == -1)
-				{
-					close(sockfd);
-					perror("Unable to send to socket");
-					exit(EXIT_FAILURE);
-				}
 
 				//Wait for a response message
 				response = (resp_message*)receive_message(sockfd, &server);
@@ -231,7 +253,6 @@ d				//Send the data message containing a chunk of the file, and wait for the ap
 				{
 					//Increment dataCounter
 					datacounter += SIZE_OF_DATA;
-
 					nextSeq = 0;
 				}
 

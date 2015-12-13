@@ -4,7 +4,7 @@
 #define LISTBUFFERLENGTH 10000
 #define SIZE_OF_BYTE 8
 #define SIZE_OF_CONTROLMSG 28
-#define SIZE_OF_DATA 1467
+#define SIZE_OF_DATA 1468
 #define SIZE_OF_DATAMSG 4
 #define TEMPSTRLENGTH 1000
 
@@ -16,7 +16,7 @@
 #include <hfs.h>
 #include <stdio.h>
 #include <string.h>
-
+#include <poll.h>
 
 int main (int, char*[]);
 long getFilesize(char* filename);
