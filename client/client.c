@@ -158,7 +158,7 @@ void sendFiles(char* filelist, char* address, char* port, char* token, hfs_entry
 	int sockfd = create_client_socket(address, port, &server);		//Create a socket to listen on port specified
 
 	// We will poll sockfd for the POLLIN event
-	struct pollfd fd = 
+	struct pollfd fd =
 	{
 		.fd = sockfd,
 		.events = POLLIN
@@ -200,7 +200,7 @@ void sendFiles(char* filelist, char* address, char* port, char* token, hfs_entry
 
 		} while (retval == 1 && fd.revents == POLLIN);
 
-		//Wait for a response message
+		//Wait for a response message for ctrl message
 		response = (resp_message*)receive_message(sockfd, &server);
 
 		//If there is an error with the response message, exit failure
@@ -217,7 +217,7 @@ void sendFiles(char* filelist, char* address, char* port, char* token, hfs_entry
 			free(response);
 
 			//nextSeq = !nextSeq
-			nextSeq = 1;
+			nextSeq = (nextSeq == 1) ? 0 : 1;
 
 			do
 			{
@@ -226,7 +226,6 @@ void sendFiles(char* filelist, char* address, char* port, char* token, hfs_entry
 
 				do
 				{
-
 					//Send the control message
 					int retval = send_message(sockfd, dataMsg, &server);
 
@@ -253,7 +252,7 @@ void sendFiles(char* filelist, char* address, char* port, char* token, hfs_entry
 				{
 					//Increment dataCounter
 					datacounter += SIZE_OF_DATA;
-					nextSeq = 0;
+					nextSeq = (nextSeq == 1) ? 0 : 1;
 				}
 
 			} while (dataCounter <= atoi(fileDetails[1]));
@@ -264,8 +263,43 @@ void sendFiles(char* filelist, char* address, char* port, char* token, hfs_entry
 	}
 
 	//Once all files have been transmitted send a type 2 control message and wait for an ACK
+	message* ctrlMsg = createCtrlMessage(tokenizer, token, fileDetails, nextSeq, 2);
 
+	do
+	{
+		//Send the control message
+		int retval = send_message(sockfd, ctrlMsg, &server);
+
+		//If there was an error sending the control message, display it and exit failure
+		if (retval == -1)
+		{
+			close(sockfd);
+			perror("Unable to send to socket");
+			exit(EXIT_FAILURE);
+		}
+
+		// Poll the socket for 1 second
+		retval = poll(&fd, 1, 1000);
+
+	} while (retval == 1 && fd.revents == POLLIN);	//If we dont get a response back within 1 second send it again
+
+	//Free the memory for control message
+	free(ctrlMsg);
+
+	//Wait for a response message
+	response = (resp_message*)receive_message(sockfd, &server);
+
+	//If there is an error with the response message, exit failure
+	if (response->errCode == 1)
+	{
+		//Print Error message and exit
+		exit(EXIT_FAILURE);
+	}
+
+	//Close Socket
 	close(sockfd);
+
+	//Close program
 	exit(EXIT_SUCCESS);
 }
 
