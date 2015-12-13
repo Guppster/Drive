@@ -149,30 +149,36 @@ void sendToServer(int sockfd, char* msg, char* buffer)
 
 void sendFiles(char* filelist, char* address, char* port, char* token, hfs_entry* listRoot)
 {
-  	resp_message* response; // Response returned by the server
-	host server;            // Address of the server
-
-  	//Create a socket to listen on port specified
-  	int sockfd = create_client_socket(address, port, &server);
+	resp_message* response;											//Response returned by the server
+	host server;													//Address of the server
+	char* fileDetails[3] = { 0 };									//Declare an array of 3 file details to be populated
+	char* tokenizer;												//Create a tokenizer to deal with one filename at a time
+	int nextSeq = 0;												//Stores the next sequence number to send
+	int dataCounter = 0;											//Tracks how many bytes have been sent in the data message
+	int sockfd = create_client_socket(address, port, &server);		//Create a socket to listen on port specified
 
 	//Find the start of the list of files
 	filelist = (strstr(filelist, "\n\n") + 2);
 
-	//Create a tokenizer to deal with one filename at a time
-	char* tokenizer;
-
 	//Seperate one line form the file list
 	tokenizer = strtok(filelist, "\n");
 
+	//Run whole process on every filename in the tokenizer
 	while (tokenizer != NULL)
 	{
-		//Send a type 1 control message with the nextSeq number and the rest of the files details
-		message* ctrlMsg = createCtrlMessage(tokenizer, token, listRoot);
+		//Populate the filedetails array for this specific file
+		getDetails(tokenizer, fileDetails, listRoot);
 
-		//Send it and free its memory
+		//Send a type 1 control message with the nextSeq number and the rest of the files details
+		message* ctrlMsg = createCtrlMessage(tokenizer, token, fileDetails, nextSeq, 1);
+
+		//Send the control message
 		int retval = send_message(sockfd, ctrlMsg, &server);
+
+		//Free the memory for control message
 		free(ctrlMsg);
 
+		//If there was an error sending the control message, display it and exit failure
 		if (retval == -1)
 		{
 			close(sockfd);
@@ -180,53 +186,128 @@ void sendFiles(char* filelist, char* address, char* port, char* token, hfs_entry
 			exit(EXIT_FAILURE);
 		}
 
+		//Wait for a response message
 		response = (resp_message*)receive_message(sockfd, &server);
 
+		//If there is an error with the response message, exit failure
 		if (response->errCode == 1)
 		{
 			//Print Error message and exit
 			exit(EXIT_FAILURE);
 		}
 
-		//Send the data message containing the first chunk of the file, and wait for the approperiate ACK
+		//If the response message is correct and has the correct sequence number, send data
+		if (response->numSeq == nextSeq)
+		{
+			//Free the memory for response message
+			free(response);
 
+			//nextSeq = !nextSeq
+			nextSeq = 1;
+
+			do
+			{
+d				//Send the data message containing a chunk of the file, and wait for the approperiate ACK
+				message* dataMsg = createDataMessage(tokenizer, nextSeq, dataCounter, SIZE_OF_DATA);
+
+				//Send the control message
+				int retval = send_message(sockfd, dataMsg, &server);
+
+				//Free the memory for control message
+				free(dataMsg);
+
+				//If there was an error sending the data message, display it and exit failure
+				if (retval == -1)
+				{
+					close(sockfd);
+					perror("Unable to send to socket");
+					exit(EXIT_FAILURE);
+				}
+
+				//Wait for a response message
+				response = (resp_message*)receive_message(sockfd, &server);
+
+				if (response->numSeq == nextSeq)
+				{
+					//Increment dataCounter
+					datacounter += SIZE_OF_DATA;
+
+					nextSeq = 0;
+				}
+
+			} while (dataCounter <= atoi(fileDetails[1]));
+		}
 
 		//Seperate one line form the file list
 		tokenizer = strtok(NULL, "\n");
 	}
 
+	//Once all files have been transmitted send a type 2 control message and wait for an ACK
+
 	close(sockfd);
 	exit(EXIT_SUCCESS);
-	
-	
-	//If there is more data, increment dataSeq and loop ^
-
-	//If there is another file to send, increment nextSeq and loop ^^ 	
-	
-	//Once all files have been transmitted send a type 2 control message and wait for an ACK
 }
 
-message* createCtrlMessage(char* filename, char* token, hfs_entry* listRoot)
+message* createCtrlMessage(char* filename, char* token, char* details[], int nextSeq, int type)
 {
 	ctrl_message* msg = (ctrl_message*)create_message();
 
-	char* details[2] = { 0 };						//Declare an array of 2 details to be populated
-
-	getDetails(filename, details, listRoot);
 	sprintf(details[0], "%X", atoi(details[0]));
 
 	msg->length = htons(SIZE_OF_CONTROLMSG + strlen(filename));
-	msg->type = 1;
-	msg->numSeq = 0;
+	msg->type = type;
+	msg->numSeq = nextSeq;
+
 	msg->flength = htons(strlen(filename));
 	msg->checksum = htonl((uint32_t)strtoul(details[0], NULL, 16));
 	msg->filesize = htonl((uint32_t)strtoul(details[1], NULL, 16));
+
 	memcpy(&msg->token[0], token, strlen(token));
 	memcpy(&msg->filename[0], filename, strlen(filename));
 
 	return (message*)msg;
 }//end of createCtrlMessage
 
+message* createDataMessage(char* filename, int nextSeq, int alreadyReadIn, int bytesToSend)
+{
+	char dataBuffer[SIZE_OF_DATA];
+	data_message* msg = (data_message*)create_message();
+
+	readInFile(dataBuffer, filename, alreadyReadIn, bytesToSend);
+
+	msg->length = htons(SIZE_OF_DATAMSG + strlen(dataBuffer));
+	msg->type = 3;
+	msg->numSeq = nextSeq;
+	msg->dataLen = strlen(dataBuffer);
+
+	memcpy(&msg->data[0], dataBuffer, strlen(dataBuffer));
+	
+	return (message*)msg;
+}//end of createCtrlMessage
+
+void readInFile(char* buffer, char* filename, int alreadyReadIn, int bytesToRead)
+{
+	//A file pointer to read in the file
+	FILE *fp;			
+	
+	//Open the file for reading binary
+	fp = fopen(filename, "rb");
+
+	//Move forward the number of bytes already read
+	fseek(fp, alreadyReadIn, SEEK_SET);
+
+	//Read in the specified number of characters
+	fgets(buffer, bytesToRead, fp)
+
+	//Close the filepointer
+	fclose(fp);
+
+	//Return the data
+	return buffer;
+}
+
+//This method traverses all files in listRoot until it matches one with filename
+//Then it proceeds to extract it's details into an array and populate it's argument array
 void getDetails(char* filename, char* details[], hfs_entry* listRoot)
 {
 	//Set a pointer to the root/head of the linked list
@@ -247,6 +328,8 @@ void getDetails(char* filename, char* details[], hfs_entry* listRoot)
 
 			sprintf(buffer2, "%ld", getFilesize(current->abs_path));
 			details[1] = buffer2;
+
+			details[3] = current->abs_path;
 		}
 
 		//Move on to the next file
@@ -258,11 +341,15 @@ void getDetails(char* filename, char* details[], hfs_entry* listRoot)
 long getFilesize(char* filename)
 {
 	FILE *fp;
-
+	long result;
 	fp = fopen(filename, "rb");
 
 	fseek(fp, 0, SEEK_END);
-	return ftell(fp);
+	result = ftell(fp);
+
+	fclose(fp);
+
+	return result;
 }//End of getFilesize method
 
 

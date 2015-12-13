@@ -15,11 +15,15 @@
 #define SIZE_OF_BYTE 8
 #define SIZE_OF_CONTROLMSG 28
 #define LENGTH_OF_TOKEN_TITLE 6
+#define SIZE_OF_DATAMSG 4
+#define SIZE_OF_DATA 1467
 
 
 int main (int, char*[]);
 void sendToServer(int sockfd, char* msg, char* buffer);
 void sendFiles(char* filelist, char* address, char* port, char* token, hfs_entry* listRoot);
-message* createCtrlMessage(char* filename, char* token, hfs_entry* listRoot);
+message* createCtrlMessage(char* filename, char* token, char* details[], int nextSeq, int type);
+message* createDataMessage(char* filename, int nextSeq, int alreadyReadIn, int bytesToSend);
 void getDetails(char* filename, char* details[], hfs_entry* listRoot);
 long getFilesize(char* filename);
+void readInFile(char* buffer, char* filename, int alreadyReadIn, int bytesToRead);

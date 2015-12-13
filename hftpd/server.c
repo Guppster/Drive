@@ -1,7 +1,7 @@
 #include "server.h"
 
 //0 for no error, 1 for error (invalid token)
-message* create_ctrl_response_message(ctrl_message* request, int error, int seqNum)
+message* create_response_message(int error, int seqNum)
 {
 	// Create a response message and initialize it 
 	resp_message* response = (resp_message*)create_message();
@@ -17,7 +17,7 @@ message* create_ctrl_response_message(ctrl_message* request, int error, int seqN
 
 int main(int argc, char *argv[])
 {
-	FILE *fp;
+	//FILE *fp;
 	//FILE *prevfp;
 	ctrl_message* requestctrl;	 					// Client's request message
 	data_message* requestdata;	 					// Client's data message
@@ -85,12 +85,12 @@ int main(int argc, char *argv[])
 			mkdir(directory, 0700);
 
 			//open new file
-			fp = fopen(abs_directory, "wb");
+			//fp = fopen(abs_directory, "wb");
 
 			//update metadata
 
 			//ACK(seq)
-			message* respMsg = create_ctrl_response_message(requestctrl, 0, expectedSeqNum);
+			message* respMsg = create_response_message(0, expectedSeqNum);
 
 			// Send the response 
 			send_message(sockfd, respMsg, &client);
@@ -102,18 +102,38 @@ int main(int argc, char *argv[])
 			free(requestctrl);
 			free(respMsg);
 
-			// Read the request message and generate the response
-			requestdata = (data_message*)receive_message(sockfd, &client);
+			do
+			{
+				// Read the request message and generate the response
+				requestdata = (data_message*)receive_message(sockfd, &client);
+
+				//ACK(seq)
+				respMsg = create_response_message(0, expectedSeqNum);
+
+				// Send the response 
+				send_message(sockfd, respMsg, &client);
+
+			} while ((requestdata->numSeq) != expectedSeqNum);
+
+			//ACK(seq)
+			respMsg = create_response_message(0, expectedSeqNum);
+
+			// Send the response 
+			send_message(sockfd, respMsg, &client);
+			
+			//expectedSeqNum = !expectedSeqNum
+			expectedSeqNum = 0;
+
+			//Write data to file
 		}
 		else
 		{
-			message* respMsg = create_ctrl_response_message(request, 0, expectedSeqNum);
+			message* respMsg = create_response_message(0, expectedSeqNum);
 
 			// Send the response 
 			send_message(sockfd, respMsg, &client);
 
 			//Free the request and response messages
-			free(request);
 			free(respMsg);
 		}
 	} while (1);
