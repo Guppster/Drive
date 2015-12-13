@@ -1,4 +1,7 @@
 #include "server.h"
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 //0 for no error, 1 for error (invalid token)
 message* create_ctrl_response_message(ctrl_message* request, int error, int seqNum)
@@ -21,10 +24,13 @@ int main(int argc, char *argv[])
 	//FILE *prevfp;
 	ctrl_message* request;	 			// Client's request message
 	host client;						// Client's address
-	char* options[4] = { 0 };			// Declare an array of 4 options to be read in from command line
 	int expectedSeqNum = 0;
+	char* options[4] = { 0 };			// Declare an array of 4 options to be read in from command line
 	char* username = calloc(30,sizeof(char));
+	char token[17];
+	token[16] = '\0';
 
+	//Obtain the arguments from command line
 	parseInput(argc, argv, options, 2);
 
 	//Create a DB Connection
@@ -39,22 +45,27 @@ int main(int argc, char *argv[])
 		// Read the request message and generate the response
 		request = (ctrl_message*)receive_message(sockfd, &client);
 
-		int checksum = ntohl(request->checksum);
-		printf("%X\n", checksum);
+		//int checksum = ntohl(request->checksum);
+		//int filesize = ntohl(request->filesize);
+
 		char filename[request->flength];
-		char token[16];
+
 		memcpy(filename, (char*)request->filename, request->flength);
 		memcpy(token, (char*)request->token, 16);
 
-		printf("\nType: %d\nFilename: %s\nChecksum: %X\nToken: [%s]\n", (int)request->type, filename, checksum, token);
+		username = hdb_verify_token(dbConnection, token);
+
+		char directory[strlen(options[2]) + strlen(username) + strlen(filename) + 2];
+		
+		sprintf(directory, "%s/%s/%s", options[2], username, filename);
+
+		printf("[%s]\n", directory);
 
 		//Check if the seqNum is what it should be
 		if ((request->numSeq) != expectedSeqNum)
 		{
-			continue;
+			//continue;
 		}
-
-		 username = hdb_verify_token(dbConnection, (char*)request->token);
 
 		//Send back the control message response 
 		if ((request->type == 1) && username != NULL)

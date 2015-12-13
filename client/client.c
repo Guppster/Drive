@@ -224,8 +224,6 @@ message* createCtrlMessage(char* filename, char* token, hfs_entry* listRoot)
 	memcpy(&msg->token[0], token, strlen(token));
 	memcpy(&msg->filename[0], filename, strlen(filename));
 
-	printf("\nExpected filename: [%s]\nExpected flength: [%d]\nExpected Filesize: [%X]\nExpected Checksum: [%s]\nExpected Token: [%s]\n", filename, strlen(filename), atoi(details[1]), details[0], token);
-
 	return (message*)msg;
 }//end of createCtrlMessage
 
