@@ -156,6 +156,7 @@ void sendFiles(char* filelist, char* address, char* port, char* token, hfs_entry
 	int nextSeq = 0;												//Stores the next sequence number to send
 	int dataCounter = 0;											//Tracks how many bytes have been sent in the data message
 	int sockfd = create_client_socket(address, port, &server);		//Create a socket to listen on port specified
+	int retval;
 
 	// We will poll sockfd for the POLLIN event
 	struct pollfd fd =
@@ -182,7 +183,7 @@ void sendFiles(char* filelist, char* address, char* port, char* token, hfs_entry
 		do
 		{
 			//Send the control message
-			int retval = send_message(sockfd, ctrlMsg, &server);
+			retval = send_message(sockfd, ctrlMsg, &server);
 
 			//Free the memory for control message
 			free(ctrlMsg);
@@ -251,7 +252,7 @@ void sendFiles(char* filelist, char* address, char* port, char* token, hfs_entry
 				if (response->numSeq == nextSeq)
 				{
 					//Increment dataCounter
-					datacounter += SIZE_OF_DATA;
+					dataCounter += SIZE_OF_DATA;
 					nextSeq = (nextSeq == 1) ? 0 : 1;
 				}
 
@@ -352,13 +353,10 @@ void readInFile(char* buffer, char* filename, int alreadyReadIn, int bytesToRead
 	fseek(fp, alreadyReadIn, SEEK_SET);
 
 	//Read in the specified number of characters
-	fgets(buffer, bytesToRead, fp)
+	fgets(buffer, bytesToRead, fp);
 
 	//Close the filepointer
 	fclose(fp);
-
-	//Return the data
-	return buffer;
 }
 
 //This method traverses all files in listRoot until it matches one with filename

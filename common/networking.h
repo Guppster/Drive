@@ -2,6 +2,10 @@
 #include <sys/types.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
+#include <err.h>
 #include <netdb.h>
 #include <hdb.h>
 #include <stdio.h>

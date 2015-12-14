@@ -17,7 +17,7 @@ message* create_response_message(int error, int seqNum)
 
 int main(int argc, char *argv[])
 {
-	//FILE *fp;
+	FILE *fp;
 	//FILE *prevfp;
 	ctrl_message* requestctrl;	 					// Client's request message
 	data_message* requestdata;	 					// Client's data message
@@ -49,8 +49,8 @@ int main(int argc, char *argv[])
 			continue;
 		}
 
-		//int checksum = ntohl(request->checksum);
-		//int filesize = ntohl(request->filesize);
+		int checksum = ntohl(requestctrl->checksum);
+		//int filesize = ntohl(requestctrl->filesize);
 
 		//Create a filename string of length read in
 		char filename[requestctrl->flength];
@@ -85,9 +85,23 @@ int main(int argc, char *argv[])
 			mkdir(directory, 0700);
 
 			//open new file
-			//fp = fopen(abs_directory, "wb");
+			fp = fopen(abs_directory, "wb");
 
 			//update metadata
+			//Make a hdb_record
+			hdb_record* record = malloc(sizeof(hdb_record));
+
+			//Populate the hdb_record fields
+			record->username = username;
+			record->filename = filename;
+
+			char tempchecksum[50];
+			sprintf(tempchecksum, "%X", checksum);
+
+			record->checksum = tempchecksum;
+
+			//store file
+			hdb_store_file(dbConnection, record);
 
 			//ACK(seq)
 			message* respMsg = create_response_message(0, expectedSeqNum);
@@ -96,7 +110,7 @@ int main(int argc, char *argv[])
 			send_message(sockfd, respMsg, &client);
 
 			//expectedSeqNum = !expectedSeqNum
-			expectedSeqNum = 1;
+			expectedSeqNum = (expectedSeqNum == 1) ? 0 : 1;
 
 			//Free the request and response messages
 			free(requestctrl);
@@ -104,27 +118,43 @@ int main(int argc, char *argv[])
 
 			do
 			{
-				// Read the request message and generate the response
-				requestdata = (data_message*)receive_message(sockfd, &client);
+				do
+				{
+					// Read the request message and generate the response
+					requestdata = (data_message*)receive_message(sockfd, &client);
+					
+					//If we get a data message and it's not the right seq number, ACK(seq) but dont increment expectedSeq
+					if (requestdata->type == 3 && ((requestdata->numSeq) != expectedSeqNum))
+					{
+						//ACK(seq)
+						respMsg = create_response_message(0, expectedSeqNum);
 
-				//ACK(seq)
-				respMsg = create_response_message(0, expectedSeqNum);
+						// Send the response 
+						send_message(sockfd, respMsg, &client);
+					}
+				} while ((requestdata->numSeq) != expectedSeqNum);		//If we get the right sequence number get out the reading loop
 
-				// Send the response 
-				send_message(sockfd, respMsg, &client);
+				//If we got a data message
+				if (requestdata->type == 3)
+				{
+					//ACK(seq) the data message
+					respMsg = create_response_message(0, expectedSeqNum);
 
-			} while ((requestdata->numSeq) != expectedSeqNum);
+					// Send the response 
+					send_message(sockfd, respMsg, &client);
 
-			//ACK(seq)
-			respMsg = create_response_message(0, expectedSeqNum);
+					//expectedSeqNum = !expectedSeqNum
+					expectedSeqNum = (expectedSeqNum == 1) ? 0 : 1;
 
-			// Send the response 
-			send_message(sockfd, respMsg, &client);
-			
-			//expectedSeqNum = !expectedSeqNum
-			expectedSeqNum = 0;
+					//Write data to file
+					fwrite(requestdata->data, 8, requestdata->dataLen, fp);
+				}
+			} while (requestdata->type != 2);		//If the message read in wasnt a data message, we are done reciving data
 
-			//Write data to file
+			//Close the file
+			fclose(fp);
+
+			//Start TIME_WAIT timer
 		}
 		else
 		{
