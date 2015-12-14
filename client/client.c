@@ -198,9 +198,6 @@ void sendFiles(char* filelist, char* address, char* port, char* token, hfs_entry
 			//Send the control message
 			retval = send_message(sockfd, ctrlMsg, &server);
 
-			//Free the memory for control message
-			free(ctrlMsg);
-
 			//If there was an error sending the control message, display it and exit failure
 			if (retval == -1)
 			{
@@ -213,6 +210,14 @@ void sendFiles(char* filelist, char* address, char* port, char* token, hfs_entry
 			retval = poll(&fd, 1, 1000);
 
 		} while (retval == 1 && fd.revents == POLLIN);
+
+		if (ctrlMsg != NULL)
+		{
+			//Free the memory for control message
+			free(ctrlMsg);
+
+			ctrlMsg = NULL;
+		}
 
 		//Wait for a response message for ctrl message
 		response = (resp_message*)receive_message(sockfd, &server);
@@ -227,8 +232,13 @@ void sendFiles(char* filelist, char* address, char* port, char* token, hfs_entry
 		//If the response message is correct and has the correct sequence number, send data
 		if (response->numSeq == nextSeq)
 		{
-			//Free the memory for response message
-			free(response);
+			if (response != NULL)
+			{
+				//Free the memory for response message
+				free(response);
+
+				response = NULL;
+			}
 
 			//nextSeq = !nextSeq
 			nextSeq = (nextSeq == 1) ? 0 : 1;
@@ -256,8 +266,13 @@ void sendFiles(char* filelist, char* address, char* port, char* token, hfs_entry
 
 				} while (retval == 1 && fd.revents == POLLIN);
 
-				//Free the memory for control message
-				free(dataMsg);
+				if (dataMsg != NULL)
+				{
+					//Free the memory for control message
+					free(dataMsg);
+
+					dataMsg = NULL;
+				}
 
 				//Wait for a response message
 				response = (resp_message*)receive_message(sockfd, &server);
@@ -297,8 +312,13 @@ void sendFiles(char* filelist, char* address, char* port, char* token, hfs_entry
 
 	} while (retval == 1 && fd.revents == POLLIN);	//If we dont get a response back within 1 second send it again
 
-	//Free the memory for control message
-	free(ctrlMsg);
+	if (ctrlMsg != NULL)
+	{
+		//Free the memory for control message
+		free(ctrlMsg);
+
+		ctrlMsg = NULL;
+	}
 
 	//Wait for a response message
 	response = (resp_message*)receive_message(sockfd, &server);
@@ -308,6 +328,14 @@ void sendFiles(char* filelist, char* address, char* port, char* token, hfs_entry
 	{
 		//Print Error message and exit
 		exit(EXIT_FAILURE);
+	}
+
+	if (response != NULL)
+	{
+		//Free the memory for response message
+		free(response);
+
+		response = NULL;
 	}
 
 	//Close Socket
