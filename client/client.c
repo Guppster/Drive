@@ -395,7 +395,7 @@ void getDetails(char* filename, char* details[], hfs_entry* listRoot)
 			sprintf(buffer2, "%ld", getFilesize(current->abs_path));
 			details[1] = buffer2;
 
-			details[3] = current->abs_path;
+			details[2] = current->abs_path;
 		}
 
 		//Move on to the next file
