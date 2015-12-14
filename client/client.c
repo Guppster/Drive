@@ -7,6 +7,12 @@ Description: This is the main file for the client side
 
 #include "client.h"
 
+void handler(int s) 
+{
+	printf("Caught signal %d\n", s);
+	exit(1);
+}
+
 int main(int argc, char *argv[])
 {
 	//Open a syslog for logging purposes
@@ -17,7 +23,14 @@ int main(int argc, char *argv[])
 	char body[LISTBODYLENGTH];			//Declare a char array to hold the body of the list message
 	body[0] = '\0';						//Null terminate the char array at the first index (to allow strcat to work)
 	char str[TEMPSTRLENGTH] = "";		//Declare a temporary string called STR to store checksum/length of body
-	//int nextSeq = 0;
+
+	struct sigaction sigIntHandler;
+
+	sigIntHandler.sa_handler = handler;
+	sigemptyset(&sigIntHandler.sa_mask);
+	sigIntHandler.sa_flags = 0;
+
+	sigaction(SIGINT, &sigIntHandler, NULL);
 
 	//Parse the inputs from the command line and populate the options array
 	parseInput(argc, argv, options, 0);
@@ -192,7 +205,7 @@ void sendFiles(char* filelist, char* address, char* port, char* token, hfs_entry
 			if (retval == -1)
 			{
 				close(sockfd);
-				perror("Unable to send to socket");
+				perror("Unable to send to socket 1");
 				exit(EXIT_FAILURE);
 			}
 
@@ -234,7 +247,7 @@ void sendFiles(char* filelist, char* address, char* port, char* token, hfs_entry
 					if (retval == -1)
 					{
 						close(sockfd);
-						perror("Unable to send to socket");
+						perror("Unable to send to socket 2");
 						exit(EXIT_FAILURE);
 					}
 
@@ -275,7 +288,7 @@ void sendFiles(char* filelist, char* address, char* port, char* token, hfs_entry
 		if (retval == -1)
 		{
 			close(sockfd);
-			perror("Unable to send to socket");
+			perror("Unable to send to socket 3");
 			exit(EXIT_FAILURE);
 		}
 

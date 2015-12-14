@@ -8,12 +8,14 @@
 #define SIZE_OF_DATAMSG 4
 #define TEMPSTRLENGTH 1000
 
+
 #include "../common/message.h"
 #include "../common/networking.h"
 #include "../common/parse.h"
 #include "../common/udp_client.h"
 #include "../common/udp_sockets.h"
 #include <hfs.h>
+#include <signal.h>
 #include <stdio.h>
 #include <string.h>
 #include <poll.h>

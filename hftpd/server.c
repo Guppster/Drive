@@ -15,6 +15,13 @@ message* create_response_message(int error, int seqNum)
 	return (message*)response;
 }
 
+void handler(int s) 
+{
+	printf("Caught signal %d\n", s);
+	exit(1);
+
+}
+
 int main(int argc, char *argv[])
 {
 	FILE *fp;
@@ -27,6 +34,14 @@ int main(int argc, char *argv[])
 	char* username = calloc(30,sizeof(char));
 	char token[17];
 	token[16] = '\0';
+
+	struct sigaction sigIntHandler;
+
+	sigIntHandler.sa_handler = handler;
+	sigemptyset(&sigIntHandler.sa_mask);
+	sigIntHandler.sa_flags = 0;
+
+	sigaction(SIGINT, &sigIntHandler, NULL);
 
 	//Obtain the arguments from command line
 	parseInput(argc, argv, options, 2);
@@ -95,12 +110,14 @@ int main(int argc, char *argv[])
 			record->username = username;
 			record->filename = filename;
 
+			//Convert the checksum to a uppercase hexidecimal string from int
 			char tempchecksum[50];
 			sprintf(tempchecksum, "%X", checksum);
 
+			//Populate the hdb_record checksum field
 			record->checksum = tempchecksum;
 
-			//store file
+			//Store file metadata
 			hdb_store_file(dbConnection, record);
 
 			//ACK(seq)
@@ -154,7 +171,37 @@ int main(int argc, char *argv[])
 			//Close the file
 			fclose(fp);
 
+			//ACK(seq) the type 2 control message
+			respMsg = create_response_message(0, expectedSeqNum);
+
+			//Send the response 
+			send_message(sockfd, respMsg, &client);
+
+			// We will poll sockfd for the POLLIN event
+			struct pollfd fd =
+			{
+				.fd = sockfd,
+				.events = POLLIN
+			};
+
 			//Start TIME_WAIT timer
+			//Poll the socket for TIME_WAIT seconds
+			int retval = poll(&fd, 1, TIME_WAIT * 1000);
+
+			if (retval == 1 && fd.revents == POLLIN)
+			{
+				//ACK(seq) the type 2 control message
+				respMsg = create_response_message(0, expectedSeqNum);
+
+				//Send the response 
+				send_message(sockfd, respMsg, &client);
+			}
+
+			// Close the socket
+			close(sockfd);
+
+			//Exit successfully
+			exit(EXIT_SUCCESS);
 		}
 		else
 		{
@@ -167,10 +214,4 @@ int main(int argc, char *argv[])
 			free(respMsg);
 		}
 	} while (1);
-
-	// Close the socket
-	close(sockfd);
-
-	//Exit successfully
-	exit(EXIT_SUCCESS);
 }//End of main method
