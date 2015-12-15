@@ -170,6 +170,13 @@ void sendFiles(char* filelist, char* address, char* port, char* token, hfs_entry
 	int dataCounter = 0;											//Tracks how many bytes have been sent in the data message
 	int sockfd = create_client_socket(address, port, &server);		//Create a socket to listen on port specified
 	int retval;
+	int polretval = 0;
+
+	//Find the start of the list of files
+	filelist = (strstr(filelist, "\n\n") + 2);
+
+	//Seperate one line form the file list
+	tokenizer = strtok(filelist, "\n");
 
 	// We will poll sockfd for the POLLIN event
 	struct pollfd fd =
@@ -177,12 +184,6 @@ void sendFiles(char* filelist, char* address, char* port, char* token, hfs_entry
 		.fd = sockfd,
 		.events = POLLIN
 	};
-
-	//Find the start of the list of files
-	filelist = (strstr(filelist, "\n\n") + 2);
-
-	//Seperate one line form the file list
-	tokenizer = strtok(filelist, "\n");
 
 	//Run whole process on every filename in the tokenizer
 	while (tokenizer != NULL)
@@ -210,20 +211,19 @@ void sendFiles(char* filelist, char* address, char* port, char* token, hfs_entry
 				exit(EXIT_FAILURE);
 			}
 
-			// Poll the socket for 1 second
-			retval = poll(&fd, 1, 1000);
+			syslog(LOG_DEBUG, "Waiting for control message ACK");
 
-		} while (retval != 1 && fd.revents != POLLIN);
+			// Poll the socket for 1 second
+			polretval = poll(&fd, 1, ONE_SECOND);
+
+		} while (polretval != 1 && fd.revents != POLLIN);
 
 		if (ctrlMsg != NULL)
 		{
 			//Free the memory for control message
 			free(ctrlMsg);
-
 			ctrlMsg = NULL;
 		}
-
-		syslog(LOG_DEBUG, "Waiting for control message ACK");
 
 		//Wait for a response message for ctrl message
 		response = (resp_message*)receive_message(sockfd, &server);
@@ -273,7 +273,7 @@ void sendFiles(char* filelist, char* address, char* port, char* token, hfs_entry
 					}
 
 					// Poll the socket for 1 second
-					retval = poll(&fd, 1, 1000);
+					retval = poll(&fd, 1, ONE_SECOND);
 
 				} while (retval != 1 && fd.revents != POLLIN);
 
@@ -308,7 +308,7 @@ void sendFiles(char* filelist, char* address, char* port, char* token, hfs_entry
 	syslog(LOG_DEBUG, "All files have been sent");
 
 	//Once all files have been transmitted send a type 2 control message and wait for an ACK
-	message* ctrlMsg = createCtrlMessage(tokenizer, token, fileDetails, nextSeq, 2);
+	message* ctrlMsg = createCtrlMessage("", token, fileDetails, nextSeq, 2);
 
 	do
 	{
@@ -326,7 +326,7 @@ void sendFiles(char* filelist, char* address, char* port, char* token, hfs_entry
 		}
 
 		// Poll the socket for 1 second
-		retval = poll(&fd, 1, 1000);
+		retval = poll(&fd, 1, ONE_SECOND);
 
 	} while (retval != 1 && fd.revents != POLLIN);	//If we dont get a response back within 1 second send it again
 

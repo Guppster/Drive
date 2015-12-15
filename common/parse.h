@@ -168,7 +168,7 @@ void parseInput(int argc, char *argv[], char* result[], int type)
 
 		if(result [3] == 0)
 		{
-			result[3] = "10";
+			result[3] = "1";
 		}
 	}
 

@@ -16,3 +16,6 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <poll.h>
+#include <limits.h>
+
+static void _mkdir(const char *dir);

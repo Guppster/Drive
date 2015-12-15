@@ -34,7 +34,7 @@ int main(int argc, char *argv[])
 	host client;									// Client's address
 	int expectedSeqNum = 0;
 	char* options[4] = { 0 };						// Declare an array of 4 options to be read in from command line
-	char* username = calloc(30,sizeof(char));
+	char* username = calloc(30, sizeof(char));
 	char token[17];
 	token[16] = '\0';
 
@@ -110,13 +110,19 @@ int main(int argc, char *argv[])
 
 			strncpy(directory, abs_directory, lastslash - abs_directory);
 
-			//Make a new directory and ignore errno value so do nothing if it already exists
-			mkdir(directory, 0700);
+			syslog(LOG_DEBUG, "Making directory: [%s]", directory);
 
-			syslog(LOG_DEBUG, "Made directory: [%s]", directory);
+			//Make a new directory and ignore errno value so do nothing if it already exists
+			_mkdir(directory);
 
 			//open new file
 			fp = fopen(abs_directory, "wb");
+
+			if (fp == NULL)
+			{
+				syslog(LOG_DEBUG, "Failed to open file");
+				exit(EXIT_FAILURE);
+			}
 
 			//update metadata
 			//Make a hdb_record
@@ -161,7 +167,7 @@ int main(int argc, char *argv[])
 
 					// Read the request message and generate the response
 					requestdata = (data_message*)receive_message(sockfd, &client);
-					
+
 					//If we get a data message and it's not the right seq number, ACK(seq) but dont increment expectedSeq
 					if (requestdata->type == 3 && ((requestdata->numSeq) != expectedSeqNum))
 					{
@@ -173,8 +179,6 @@ int main(int argc, char *argv[])
 						// Send the response 
 						send_message(sockfd, respMsg, &client);
 					}
-
-					syslog(LOG_DEBUG, "Seq = [%d]", requestdata->numSeq);
 
 				} while ((requestdata->numSeq) != expectedSeqNum);		//If we get the right sequence number get out the reading loop
 
@@ -192,55 +196,12 @@ int main(int argc, char *argv[])
 					//expectedSeqNum = !expectedSeqNum
 					expectedSeqNum = (expectedSeqNum == 1) ? 0 : 1;
 
-					syslog(LOG_DEBUG, "Writing To File");
+					syslog(LOG_DEBUG, "Writing To File, [%d] bytes", requestdata->dataLen);
 
 					//Write data to file
 					fwrite(requestdata->data, 8, requestdata->dataLen, fp);
 				}
-			} while (requestdata->type != 2);		//If the message read in wasnt a data message, we are done reciving data
-
-			syslog(LOG_DEBUG, "Type 2 control message recieved");
-
-			//Close the file
-			fclose(fp);
-
-			syslog(LOG_DEBUG, "ACK'ing Type 2 control message");
-
-			//ACK(seq) the type 2 control message
-			respMsg = create_response_message(0, expectedSeqNum);
-
-			//Send the response 
-			send_message(sockfd, respMsg, &client);
-
-			// We will poll sockfd for the POLLIN event
-			struct pollfd fd =
-			{
-				.fd = sockfd,
-				.events = POLLIN
-			};
-
-			syslog(LOG_DEBUG, "Polling for TIME_WAIT");
-
-			//Start TIME_WAIT timer
-			//Poll the socket for TIME_WAIT seconds
-			int retval = poll(&fd, 1, TIME_WAIT * 1000);
-
-			if (retval == 1 && fd.revents == POLLIN)
-			{
-				syslog(LOG_DEBUG, "ACK'ing Type 2 control message");
-
-				//ACK(seq) the type 2 control message
-				respMsg = create_response_message(0, expectedSeqNum);
-
-				//Send the response 
-				send_message(sockfd, respMsg, &client);
-			}
-
-			// Close the socket
-			close(sockfd);
-
-			//Exit successfully
-			exit(EXIT_SUCCESS);
+			} while (requestdata->type == 3);		//If the message read in wasnt a data message, we are done reciving data
 		}
 		else
 		{
@@ -254,5 +215,72 @@ int main(int argc, char *argv[])
 			//Free the request and response messages
 			free(respMsg);
 		}
-	} while (1);
+	} while (requestdata->type == 1);
+
+	syslog(LOG_DEBUG, "Type 2 control message recieved");
+
+	//Close the file
+	fclose(fp);
+
+	syslog(LOG_DEBUG, "ACK'ing Type 2 control message");
+
+	//ACK(seq) the type 2 control message
+	message* respMsg = create_response_message(0, expectedSeqNum);
+
+	//Send the response 
+	send_message(sockfd, respMsg, &client);
+
+	// We will poll sockfd for the POLLIN event
+	struct pollfd fd =
+	{
+		.fd = sockfd,
+		.events = POLLIN
+	};
+
+	syslog(LOG_DEBUG, "Polling for TIME_WAIT");
+
+	//Start TIME_WAIT timer
+	//Poll the socket for TIME_WAIT seconds
+	int retval = poll(&fd, 1, TIME_WAIT * 1000);
+
+	if (retval == 1 && fd.revents == POLLIN)
+	{
+		syslog(LOG_DEBUG, "ACK'ing Type 2 control message");
+
+		//ACK(seq) the type 2 control message
+		respMsg = create_response_message(0, expectedSeqNum);
+
+		//Send the response 
+		send_message(sockfd, respMsg, &client);
+	}
+
+	// Close the socket
+	close(sockfd);
+
+	//Exit successfully
+	exit(EXIT_SUCCESS);
+
 }//End of main method
+
+
+//We use this method to recursivly make directories
+static void _mkdir(const char *dir) 
+{
+	char tmp[PATH_MAX];
+	char *p = NULL;
+	size_t len;
+
+	snprintf(tmp, sizeof(tmp), "%s", dir);
+	len = strlen(tmp);
+	if (tmp[len - 1] == '/')
+		tmp[len - 1] = 0;
+
+	for (p = tmp + 1; *p; p++)
+		if (*p == '/') 
+		{
+			*p = 0;
+			mkdir(tmp, S_IRWXU);
+			*p = '/';
+		}
+	mkdir(tmp, S_IRWXU);
+}

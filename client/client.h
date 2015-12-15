@@ -7,6 +7,7 @@
 #define SIZE_OF_DATA 1468
 #define SIZE_OF_DATAMSG 4
 #define TEMPSTRLENGTH 1000
+#define ONE_SECOND 1000
 
 
 #include "../common/message.h"
