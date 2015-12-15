@@ -165,7 +165,7 @@ int main(int argc, char *argv[])
 			{
 				do
 				{
-					syslog(LOG_DEBUG, "Recieving a data message. Expected Seq = [%d]", expectedSeqNum);
+					syslog(LOG_DEBUG, "Recieving a data message.");
 
 					// Read the request message and generate the response
 					requestdata = (data_message*)receive_message(sockfd, &client);

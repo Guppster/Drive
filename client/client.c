@@ -173,7 +173,7 @@ void sendFiles(char* filelist, char* address, char* port, char* token, hfs_entry
 {
 	resp_message* response;											//Response returned by the server
 	host server;													//Address of the server
-	char* fileDetails[3] = { 0 };									//Declare an array of 3 file details to be populated
+	char** fileDetails = calloc(3, sizeof(char) * 50);  			//Declare an array of 3 file details to be populated
 	char* tokenizer;												//Create a tokenizer to deal with one filename at a time
 	int nextSeq = 0;												//Stores the next sequence number to send
 	int dataCounter = 0;											//Tracks how many bytes have been sent in the data message
@@ -197,8 +197,6 @@ void sendFiles(char* filelist, char* address, char* port, char* token, hfs_entry
 	//Run whole process on every filename in the tokenizer
 	while (tokenizer != NULL)
 	{
-		syslog(LOG_DEBUG, "Obtaining file details");
-
 		//Populate the filedetails array for this specific file
 		getDetails(tokenizer, fileDetails, listRoot);
 
@@ -293,10 +291,10 @@ void sendFiles(char* filelist, char* address, char* port, char* token, hfs_entry
 					dataMsg = NULL;
 				}
 
-				syslog(LOG_DEBUG, "Waiting for data message ACK");
-
 				//Wait for a response message
 				response = (resp_message*)receive_message(sockfd, &server);
+
+				syslog(LOG_DEBUG, "Waiting for data message ACK");
 
 				if (response->numSeq == nextSeq)
 				{
@@ -307,8 +305,6 @@ void sendFiles(char* filelist, char* address, char* port, char* token, hfs_entry
 
 			}while (dataCounter <= atoi(fileDetails[1]));
 		}
-		
-		syslog(LOG_DEBUG, "Moving on to next file");
 
 		//Seperate one line form the file list
 		tokenizer = strtok(NULL, "\n");
@@ -415,13 +411,15 @@ void readInFile(char* buffer, char* filename, int alreadyReadIn, int bytesToRead
 	FILE *fp;			
 
 	//Open the file for reading binary
-	fp = fopen(filename, "rb");
+	fp = fopen(filename, "r");
 
 	//Move forward the number of bytes already read
 	fseek(fp, alreadyReadIn, SEEK_SET);
 	
 	//Read in the specified number of characters
 	fgets(buffer, bytesToRead, fp);
+
+	printf("...[%s]...\n", buffer);
 
 	//Close the filepointer
 	fclose(fp);
@@ -431,19 +429,19 @@ void readInFile(char* buffer, char* filename, int alreadyReadIn, int bytesToRead
 //Then it proceeds to extract it's details into an array and populate it's argument array
 void getDetails(char* filename, char* details[], hfs_entry* listRoot)
 {
+
 	//Set a pointer to the root/head of the linked list
 	hfs_entry* current = listRoot;
 
-	char buffer[1000];
-	char buffer2[1000];
+	char buffer[150];
+	char buffer2[150];
 
 	//for each entry in listRoot
 	do
 	{
 		//Compare if the current is the specified filename
-		if (strcmp(current->rel_path, filename))
+		if (strcmp(current->rel_path, filename) == 0)
 		{
-
 			sprintf(buffer, "%d", current->crc32);
 			details[0] = buffer;
 
@@ -463,9 +461,9 @@ long getFilesize(char* filename)
 {
 	FILE *fp;
 	long result;
-	fp = fopen(filename, "rb");
+	fp = fopen(filename, "r");
 
-	fseek(fp, 0, SEEK_END);
+	fseek(fp, 0L, SEEK_END);
 	result = ftell(fp);
 
 	fclose(fp);
