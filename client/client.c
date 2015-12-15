@@ -187,6 +187,8 @@ void sendFiles(char* filelist, char* address, char* port, char* token, hfs_entry
 	//Run whole process on every filename in the tokenizer
 	while (tokenizer != NULL)
 	{
+		syslog(LOG_DEBUG, "Obtaining file details");
+
 		//Populate the filedetails array for this specific file
 		getDetails(tokenizer, fileDetails, listRoot);
 
@@ -195,6 +197,8 @@ void sendFiles(char* filelist, char* address, char* port, char* token, hfs_entry
 
 		do
 		{
+			syslog(LOG_DEBUG, "Sending type 1 control message");
+
 			//Send the control message
 			retval = send_message(sockfd, ctrlMsg, &server);
 
@@ -209,7 +213,7 @@ void sendFiles(char* filelist, char* address, char* port, char* token, hfs_entry
 			// Poll the socket for 1 second
 			retval = poll(&fd, 1, 1000);
 
-		} while (retval == 1 && fd.revents == POLLIN);
+		} while (retval != 1 && fd.revents != POLLIN);
 
 		if (ctrlMsg != NULL)
 		{
@@ -219,12 +223,18 @@ void sendFiles(char* filelist, char* address, char* port, char* token, hfs_entry
 			ctrlMsg = NULL;
 		}
 
+		syslog(LOG_DEBUG, "Waiting for control message ACK");
+
 		//Wait for a response message for ctrl message
 		response = (resp_message*)receive_message(sockfd, &server);
+
+		syslog(LOG_DEBUG, "control message ACK recieved");
 
 		//If there is an error with the response message, exit failure
 		if (response->errCode == 1)
 		{
+			syslog(LOG_INFO, "There was an error with the response message. Exiting");
+
 			//Print Error message and exit
 			exit(EXIT_FAILURE);
 		}
@@ -236,7 +246,6 @@ void sendFiles(char* filelist, char* address, char* port, char* token, hfs_entry
 			{
 				//Free the memory for response message
 				free(response);
-
 				response = NULL;
 			}
 
@@ -246,10 +255,12 @@ void sendFiles(char* filelist, char* address, char* port, char* token, hfs_entry
 			do
 			{
 				//Send the data message containing a chunk of the file, and wait for the approperiate ACK
-				message* dataMsg = createDataMessage(tokenizer, nextSeq, dataCounter, SIZE_OF_DATA);
+				message* dataMsg = createDataMessage(fileDetails[2], nextSeq, dataCounter, SIZE_OF_DATA);
 
 				do
 				{
+					syslog(LOG_DEBUG, "Sending the data message");
+
 					//Send the control message
 					int retval = send_message(sockfd, dataMsg, &server);
 
@@ -264,15 +275,16 @@ void sendFiles(char* filelist, char* address, char* port, char* token, hfs_entry
 					// Poll the socket for 1 second
 					retval = poll(&fd, 1, 1000);
 
-				} while (retval == 1 && fd.revents == POLLIN);
+				} while (retval != 1 && fd.revents != POLLIN);
 
 				if (dataMsg != NULL)
 				{
 					//Free the memory for control message
 					free(dataMsg);
-
 					dataMsg = NULL;
 				}
+
+				syslog(LOG_DEBUG, "Waiting for data message ACK");
 
 				//Wait for a response message
 				response = (resp_message*)receive_message(sockfd, &server);
@@ -284,18 +296,24 @@ void sendFiles(char* filelist, char* address, char* port, char* token, hfs_entry
 					nextSeq = (nextSeq == 1) ? 0 : 1;
 				}
 
-			} while (dataCounter <= atoi(fileDetails[1]));
+			}while (dataCounter <= atoi(fileDetails[1]));
 		}
+		
+		syslog(LOG_DEBUG, "Moving on to next file");
 
 		//Seperate one line form the file list
 		tokenizer = strtok(NULL, "\n");
 	}
+
+	syslog(LOG_DEBUG, "All files have been sent");
 
 	//Once all files have been transmitted send a type 2 control message and wait for an ACK
 	message* ctrlMsg = createCtrlMessage(tokenizer, token, fileDetails, nextSeq, 2);
 
 	do
 	{
+		syslog(LOG_DEBUG, "Sending type 2 control message");
+
 		//Send the control message
 		int retval = send_message(sockfd, ctrlMsg, &server);
 
@@ -310,15 +328,16 @@ void sendFiles(char* filelist, char* address, char* port, char* token, hfs_entry
 		// Poll the socket for 1 second
 		retval = poll(&fd, 1, 1000);
 
-	} while (retval == 1 && fd.revents == POLLIN);	//If we dont get a response back within 1 second send it again
+	} while (retval != 1 && fd.revents != POLLIN);	//If we dont get a response back within 1 second send it again
 
 	if (ctrlMsg != NULL)
 	{
 		//Free the memory for control message
 		free(ctrlMsg);
-
 		ctrlMsg = NULL;
 	}
+
+	syslog(LOG_DEBUG, "Waiting for type 2 control message ACK");
 
 	//Wait for a response message
 	response = (resp_message*)receive_message(sockfd, &server);
@@ -334,7 +353,6 @@ void sendFiles(char* filelist, char* address, char* port, char* token, hfs_entry
 	{
 		//Free the memory for response message
 		free(response);
-
 		response = NULL;
 	}
 
@@ -386,13 +404,13 @@ void readInFile(char* buffer, char* filename, int alreadyReadIn, int bytesToRead
 {
 	//A file pointer to read in the file
 	FILE *fp;			
-	
+
 	//Open the file for reading binary
 	fp = fopen(filename, "rb");
 
 	//Move forward the number of bytes already read
 	fseek(fp, alreadyReadIn, SEEK_SET);
-
+	
 	//Read in the specified number of characters
 	fgets(buffer, bytesToRead, fp);
 
