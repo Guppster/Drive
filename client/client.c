@@ -125,15 +125,24 @@ int main(int argc, char *argv[])
 	//Send the LIST request to the server
 	sendToServer(sockfd, msgList, bufferListRequest);;
 
-    syslog(LOG_INFO, "Server requested the following files:\n%s", strstr(bufferListRequest, "\n\n") + 2);
-
 	// Close the connection
 	close(sockfd);
 
-	//Prepare the token (remove title and \n)
-	token[strlen(token)-1] = '\0';
+	if (strlen(strstr(bufferListRequest, "\n\n") + 2) != 0)
+	{
+		syslog(LOG_INFO, "Server requested the following files:\n%s", strstr(bufferListRequest, "\n\n") + 2);
 
-	sendFiles(bufferListRequest, options[5], options[6], token + LENGTH_OF_TOKEN_TITLE, listRoot);
+		//Prepare the token (remove title and \n)
+		token[strlen(token) - 1] = '\0';
+
+		sendFiles(bufferListRequest, options[5], options[6], token + LENGTH_OF_TOKEN_TITLE, listRoot);
+	}
+	else
+	{
+		syslog(LOG_INFO, "Server requested no files");
+	}
+
+	syslog(LOG_INFO, "Exiting.");
 
 	//Print the list of files requested by the server. If the server requests no files, print an appropriate message.
 	exit(EXIT_SUCCESS);
