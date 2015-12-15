@@ -294,7 +294,7 @@ void sendFiles(char* filelist, char* address, char* port, char* token, hfs_entry
 				//Wait for a response message
 				response = (resp_message*)receive_message(sockfd, &server);
 
-				syslog(LOG_DEBUG, "Waiting for data message ACK");
+				syslog(LOG_DEBUG, " ");
 
 				if (response->numSeq == nextSeq)
 				{
