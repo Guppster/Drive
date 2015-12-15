@@ -258,7 +258,7 @@ void sendFiles(char* filelist, char* address, char* port, char* token, hfs_entry
 
 			//nextSeq = !nextSeq
 			nextSeq = (nextSeq == 1) ? 0 : 1;
-
+			dataCounter = 0;
 			do
 			{
 				//Send the data message containing a chunk of the file, and wait for the approperiate ACK
