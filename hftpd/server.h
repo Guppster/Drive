@@ -1,4 +1,3 @@
-#define TIME_WAIT 5
 
 #include <arpa/inet.h>
 #include "../common/message.h"

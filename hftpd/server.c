@@ -49,6 +49,8 @@ int main(int argc, char *argv[])
 	//Obtain the arguments from command line
 	parseInput(argc, argv, options, 2);
 
+	int TIME_WAIT = atoi(options[3]);
+
 	//Create a DB Connection
 	hdb_connection* dbConnection = hdb_connect(options[1]);
 
@@ -142,7 +144,7 @@ int main(int argc, char *argv[])
 			syslog(LOG_DEBUG, "Updating Redis Metadata");
 
 			//Store file metadata (dont store in testing)
-			//hdb_store_file(dbConnection, record);
+			hdb_store_file(dbConnection, record);
 
 			syslog(LOG_DEBUG, "ACK'ing Control Message");
 
