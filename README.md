@@ -5,7 +5,7 @@ This repository contains my client and server implementations of a personal clou
 When the server and client programs are run simultaneously the client's specified directory will be synced with the server's. This happens by first using /HMDS to send the file names and checksums then comparing with the server to find changed files. After this the changed files are transmitted in blocks and reconstructed on the server side.
 
 ##Building and Running
-###(specifics in each directory's readme)
+###Specifics in each directory's readme
 * Use make to build /hftpd and /client
 * Run server
 * Run client 
