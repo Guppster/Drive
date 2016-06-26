@@ -8,7 +8,7 @@ When the server and client programs are run simultaneously the client's specifie
 ###Specifics in each directory's readme
 * Use make to build /hftpd and /client
 * Run server
-* Run client 
+* Run client with arguments specifying the server and directory
 
 ##Contributing (TO-DO)
 * Current code has memory leaks I can't seem to track down
