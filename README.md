@@ -1,19 +1,19 @@
-#Hooli Drive 
+# Hooli Drive 
  
 This repository contains my client and server implementations of a personal cloud storage service (sometimes referred to as an online backup service) that can be used used for file sharing and collaboration.  
  
 When the server and client programs are run simultaneously the client's specified directory will be synced with the server's. This happens by first using /HMDS to send the file names and checksums then comparing with the server to find changed files. After this the changed files are transmitted in blocks and reconstructed on the server side.
 
-##Building and Running
-###Specifics in each directory's readme
+## Building and Running
+### Specifics in each directory's readme
 * Use make to build /hftpd and /client
 * Run server
 * Run client with arguments specifying the server and directory
 
-##Contributing (TO-DO)
+## Contributing (TO-DO)
 * Current code has memory leaks I can't seem to track down
 
-##About Development 
+## About Development 
 This project was developed to allow me to obtain more hands-on knowledge with the layers of networking. 
 I read 'Networking. A top-down approach' and experimented with UDP and TCP.  
  
