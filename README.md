@@ -20,3 +20,4 @@ I read 'Networking. A top-down approach' and experimented with UDP and TCP.
 The file names and checksum is sent using TCP within /HMDS because this data needs reliable data transfer and isnt expected to be large. The file data itself is sent using protocol i designed on top of UDP which ensures reliable data transfer while taking advantage of the speed benefit of UDP. 
  
 Overall this was a very good learning experience for me.
+Please excuse the unprofessional commit messages in this repo, I was having fun.
